@@ -1,10 +1,4 @@
-import math
-
 import numpy as np
-
-import initializations
-
-import Library.functions
 
 
 def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):

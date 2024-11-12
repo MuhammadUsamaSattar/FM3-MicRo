@@ -7,28 +7,30 @@ import pygame
 import pickle
 import numpy as np
 
-import initializations
-import Control_Algorithms.control_algorithm as control_algorithm
+from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.system.Control_Algorithms import control_algorithm
 
-import Library.data_extractor
-import Library.functions
-from Library.pygame_recorder import ScreenRecorder
+from gymnasium_env.envs.system.Library import data_extractor
+from gymnasium_env.envs.system.Library import functions
+from gymnasium_env.envs.system.Library.pygame_recorder import ScreenRecorder
 
 
 class Simulator:
     """Class for the simulator object which runs and updates the pygame screen and hanldes inputs
     """    
 
-    def __init__(self):
+    def __init__(self, framerate):
         """Initializes all the required class attributes such as particle location, particle velocity,
         goal locations, solenoids currents and flags for modifying the runFrame() method.
         """
+        # Attribute to hold the pygame screen
+        self.screen = None
 
-        pygame.init()
+        # Attribute to hold the pygame screen framerate
+        self.framerate = framerate
 
-        self.screen = pygame.display.set_mode(
-            [initializations.SIM_FRAME_WIDTH, initializations.SIM_FRAME_HEIGHT]
-        )  # Set up the drawing window
+        # Attribute to hold the pygame clock
+        self.clock = pygame.time.Clock()  # Clock to limit the game fps
 
         # Attributes to hold the particle and goal locations
         self.particle_loc = [0, 0]
@@ -71,7 +73,7 @@ class Simulator:
             for x in range(len(self.coil_vals))
         ]  # Calculates the location for each solenoid using the angles. 0th solenoid is at pi/2.
 
-        self.data_extractor = Library.data_extractor.data_extractor(
+        self.data_extractor = data_extractor.data_extractor(
             self.coil_locs,
             initializations.COIL_NAMES,
         )  # Stores the data extractor object in an attribute
@@ -85,8 +87,15 @@ class Simulator:
 
         # Loads the saved prediction model for predicting the motion of the particle in the simulator
         model_filename = "Predict_rdot_from_I_r_R2_0.916_No_0.0_to_0.15_shuffled"
-        with open("Models/" + model_filename + ".pkl", "rb") as f:
+        with open(os.path.dirname(__file__) + "/Models/" + model_filename + ".pkl", "rb") as f:
             self.model = pickle.load(f)
+
+    def renderInit(self):
+        pygame.init()
+
+        self.screen = pygame.display.set_mode(
+            [initializations.SIM_FRAME_WIDTH, initializations.SIM_FRAME_HEIGHT]
+        )  # Set up the drawing window
 
     def drawSolenoidState(self, screen, coil_value, x, y):
         """Draws a circle at the [x, y] location with color depending upon coil_value
@@ -128,7 +137,7 @@ class Simulator:
             coil_vals : List of size 8 containing scaled currents starting from Northern coil
         """        
         for i in range(len(self.coil_locs)):
-            coil_loc_img = Library.functions.absolute_to_image(
+            coil_loc_img = functions.absolute_to_image(
                 coil_locs[i][0],
                 coil_locs[i][1],
                 initializations.SIM_FRAME_WIDTH,
@@ -146,7 +155,7 @@ class Simulator:
             screen : pygame screen object on which to draw
             particle_loc :Location of the particle
         """        
-        particle_loc_img = Library.functions.absolute_to_image(
+        particle_loc_img = functions.absolute_to_image(
             particle_loc[0],
             particle_loc[1],
             initializations.SIM_FRAME_WIDTH,
@@ -167,7 +176,7 @@ class Simulator:
             screen : Screen object on which to draw
             goal_loc : Location of the goal
         """        
-        goal_loc_img = Library.functions.absolute_to_image(
+        goal_loc_img = functions.absolute_to_image(
             goal_loc[0],
             goal_loc[1],
             initializations.SIM_FRAME_WIDTH,
@@ -210,13 +219,13 @@ class Simulator:
             particle_loc : Location of particle
             goal_loc : Location of goal
         """        
-        particle_loc_img = Library.functions.absolute_to_image(
+        particle_loc_img = functions.absolute_to_image(
             particle_loc[0],
             particle_loc[1],
             initializations.SIM_FRAME_WIDTH,
             initializations.SIM_FRAME_HEIGHT,
         )
-        goal_loc_img = Library.functions.absolute_to_image(
+        goal_loc_img = functions.absolute_to_image(
             goal_loc[0],
             goal_loc[1],
             initializations.SIM_FRAME_WIDTH,
@@ -360,6 +369,7 @@ class Simulator:
         coil_vals,
         flag_edit_particle_keyboard,
         flag_edit_goal_keyboard,
+        render,
     ):
         """Draws all screen elements
 
@@ -371,20 +381,22 @@ class Simulator:
             coil_vals : List of size 8 containing scaled currents
             flag_edit_particle_keyboard : Flag to detect if the user has clicked on the particle text to modify the position
             flag_edit_goal_keyboard : Flag to detect if the user has clicked on the goal text to modify the position
-        """        
-        self.drawText(screen, particle_loc, goal_locs[0], flag_edit_particle_keyboard, flag_edit_goal_keyboard)
-        self.drawSolenoids(screen, coil_locs, coil_vals)
-        self.drawGoalVector(screen, particle_loc, goal_locs[0])
+            render : Determines if screen needs to be rendered
+        """
+        if render:
+            self.drawText(screen, particle_loc, goal_locs[0], flag_edit_particle_keyboard, flag_edit_goal_keyboard)
+            self.drawSolenoids(screen, coil_locs, coil_vals)
+            self.drawGoalVector(screen, particle_loc, goal_locs[0])
 
-        for i in range(len(goal_locs)):
-            # If multiple goals are being set, skip the first goal since it is the goal before multiple goals were being set.
-            # This old goal is necessary to keep in case the user quits the multiple goal mode without setting any new ones.
-            if self.flag_setting_multiple_goals and i == 0:
-                continue
+            for i in range(len(goal_locs)):
+                # If multiple goals are being set, skip the first goal since it is the goal before multiple goals were being set.
+                # This old goal is necessary to keep in case the user quits the multiple goal mode without setting any new ones.
+                if self.flag_setting_multiple_goals and i == 0:
+                    continue
 
-            self.drawGoalPosition(screen, goal_locs[i])
+                self.drawGoalPosition(screen, goal_locs[i])
 
-        self.drawParticle(screen, particle_loc)
+            self.drawParticle(screen, particle_loc)
 
     def calcRDot(self, I, r, alpha):
         """Calculates the velocity of particle towards a solenoid
@@ -438,7 +450,7 @@ class Simulator:
 
             # For each coil, calculates the predicted velocity and adds it to temp_particle_vel
             for i in range(len(coil_vals)):
-                r = Library.functions.distance(
+                r = functions.distance(
                     coil_locs[i][0], coil_locs[i][1], particle_loc[0], particle_loc[1]
                 )
                 alpha = math.atan2(
@@ -556,7 +568,7 @@ class Simulator:
             list: In-bounds location of mouse
         """        
         pos = list(pygame.mouse.get_pos())
-        pos = Library.functions.image_to_absolute(
+        pos = functions.image_to_absolute(
             pos[0],
             pos[1],
             initializations.SIM_FRAME_WIDTH,
@@ -739,7 +751,6 @@ class Simulator:
 
                 # Checks if "m" was pressed
                 elif event.key == pygame.K_m:
-
                     # If number of goals is more than one, then removes the first element and adds a duplicate of the last value.
                     # First element is removed since it is the goal prior to the multiple goals mode.
                     # Last element is duplicated because "Executing Multiple Goals Motion" is only displayed as long as number
@@ -801,7 +812,7 @@ class Simulator:
 
                     try:
                         # Opens the Path Data.txt file which is placed in the same directory as this file
-                        with open("Path Data.txt", "r") as f:
+                        with open(os.path.dirname(__file__) + "/Path Data.txt", "r") as f:
                             path_data = f.readlines()
                             temp = []
 
@@ -827,7 +838,7 @@ class Simulator:
                             "and -",
                             initializations.GUI_SOL_CIRCLE_RAD,
                         )
- 
+
                     except:
                         print(
                             'Invalid format of path locations. The file must consists of each path point on separate line.' 
@@ -836,23 +847,20 @@ class Simulator:
 
         return running
 
-    def runFrame(self, running, prev_time):
+    def step(self, running, prev_time, coil_vals, render):
         """Runs one frame
 
         Args:
             running : Determines whether program is still running
             prev_time : Time stamp of previous frame in seconds
+            render : Determines if screen should be rendered
 
         Returns:
             bool: Determines whether program is still running
             float: Time stamp of previous frame in seconds
         """        
-        running = self.eventHandler()
-
-        self.screen.fill((255, 255, 255))
-
         # Calculates d, distance from first goal, and removes the goal from the list if d is less than initializations.SIM_MULTIPLE_GOALS_ACCURACY
-        d = Library.functions.distance(
+        d = functions.distance(
             self.particle_loc[0],
             self.particle_loc[1],
             self.goal_locs[0][0],
@@ -869,32 +877,45 @@ class Simulator:
         # Records a data point in the data logger
         if self.flag_log:
             self.data_extractor.record_datapoint(
-                self.particle_loc, self.coil_vals, self.goal_locs, 1
+                self.particle_loc, coil_vals, self.goal_locs, 1
             )
 
         self.particle_loc, self.particle_vel, prev_time = self.updateParticleLocation(
             self.particle_loc,
             self.particle_vel,
             self.flag_edit_particle_mouse,
-            self.coil_vals,
+            coil_vals,
             self.coil_locs,
             prev_time,
         )
 
-        self.coil_vals = control_algorithm.get_coil_vals(
-            self.particle_loc, self.goal_locs[0], self.coil_vals, self.coil_locs
-        )
-        self.coil_vals = Library.functions.limit_coil_vals(self.coil_vals)
+        coil_vals = functions.limit_coil_vals(coil_vals)
 
-        self.drawElements(
-            self.screen,
-            self.particle_loc,
-            self.goal_locs,
-            self.coil_locs,
-            self.coil_vals,
-            self.flag_edit_particle_keyboard,
-            self.flag_edit_goal_keyboard,
-        )
+        if render:
+            if self.screen == None:
+                self.renderInit()
+
+            running = self.eventHandler()
+
+            self.screen.fill((255, 255, 255))
+            self.drawElements(
+                self.screen,
+                self.particle_loc,
+                self.goal_locs,
+                self.coil_locs,
+                coil_vals,
+                self.flag_edit_particle_keyboard,
+                self.flag_edit_goal_keyboard,
+                render,
+            )
+
+            pygame.display.flip()
+
+            self.clock.tick(self.framerate)  # Sleeps in between loop so that fps is equal to self.framerate
+
+        else:
+            if self.screen != None:
+                self.close()
 
         if self.flag_record:
             self.recorder.capture_frame(self.screen)
@@ -915,23 +936,102 @@ class Simulator:
             else:
                 self.goal_locs = [pos]
 
-        pygame.display.flip()
-
         return running, prev_time
 
-    def run(self):
-        """Keeps running game frames until running becomes False
-        """        
-        clock = pygame.time.Clock()  # Clock to limit the game fps
-        running = True
-        prev_time = time.time()
-        while running:
-            running, prev_time = self.runFrame(running, prev_time)
-            clock.tick(60)  # Sleeps in between loop so that fps is 60
+    def getState(self):
+        return self.particle_loc.copy(), self.goal_locs[0].copy(), self.coil_vals.copy(), self.coil_locs.copy()
 
+    def resetAtRandomLocs(self, seed):
+        """Resets the game by resetting all values and placing the partcile and goal at random locations.
+
+        Args:
+            seed : Seed value that determines the pseudo-random number
+        """
+        factor = 1 / math.sqrt(2)
+        # Attributes to hold the particle and goal locations
+        self.particle_loc = list(
+            np.random.randint(
+                -initializations.SIM_SOL_CIRCLE_RAD * factor,
+                initializations.SIM_SOL_CIRCLE_RAD * factor,
+                size=2,
+                dtype=int,
+            )
+        )
+
+        self.goal_locs[0] = self.particle_loc.copy()
+        factor *= 3 / 4
+
+        while (
+            functions.distance(
+                self.particle_loc[0],
+                self.particle_loc[1],
+                self.goal_locs[0][0],
+                self.goal_locs[0][1],
+            )
+            < 200
+        ):
+            self.goal_locs = [
+                list(
+                    np.random.randint(
+                        -initializations.SIM_SOL_CIRCLE_RAD * factor,
+                        initializations.SIM_SOL_CIRCLE_RAD * factor,
+                        size=2,
+                        dtype=int,
+                    )
+                )
+            ]
+
+        self.particle_vel = [0, 0]  # Attribute to hold the particle velocity
+
+        # Flags to detect if the user is continuously holding down the mouse button to move the particle or goal
+        self.flag_edit_particle_mouse = False
+        self.flag_edit_move_goal_mouse = False
+
+        # Flags to detect if the user has clicked on the particle or goal text to modify the position
+        self.flag_edit_particle_keyboard = False
+        self.flag_edit_goal_keyboard = False
+
+        # Text attributes to hold the entered text by the user after clicking on the text for particle and goal
+        self.txt_particle = ""
+        self.txt_goal = ""
+
+        self.flag_setting_multiple_goals = False  # Flag to detect if multiple goals mode has been turned on
+        self.flag_log = False  # Flag to detect if logging mode has been turned on
+
+        self.flag_record = False  # Flag to detect if screen is being recorded
+
+        self.coil_vals = [
+            0.0 for _ in initializations.COIL_NAMES
+        ]  # Creates a 1x8 list of floats that will hold the current value for each coil
+
+        self.data_extractor = data_extractor.data_extractor(
+            self.coil_locs,
+            initializations.COIL_NAMES,
+        )  # Stores the data extractor object in an attribute
+
+        self.date_time = str(datetime.datetime.now())  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
+        self.date_time = self.date_time.replace(":", ".")  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
+        self.date_time = self.date_time.replace(" ", "_")  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
+        self.date_time = self.date_time[:-7]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
+
+        self.video_num = 1  # Number of video so that each video has a unique name
+
+    def close(self):
+        pygame.display.quit()
         pygame.quit()
 
-
 if __name__ == "__main__":
-    sim = Simulator()
-    sim.run()
+    sim = Simulator(1)
+
+    running = True
+    prev_time = time.time()
+    while running:
+        particle_loc, goal_locs, coil_vals, coil_locs = sim.getState()
+
+        coil_vals = control_algorithm.get_coil_vals(
+            particle_loc, goal_locs, coil_vals, coil_locs
+        )
+
+        running, prev_time = sim.step(running, prev_time, coil_vals, False)
+
+    pygame.quit()

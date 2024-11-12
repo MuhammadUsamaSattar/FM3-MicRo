@@ -31,15 +31,16 @@ import cv2
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from Interface.Ui_interface import *
 
-import Control_Algorithms.control_algorithm as control_algorithm
-import initializations
+from gymnasium_env.envs.system.Interface.Ui_interface import *
 
-import Library.blob_detection as Blob_detect
-import Library.data_extractor
-import Library.functions
-import Library.pyspin_wrapper as PySpin_lib
+from gymnasium_env.envs.system.Control_Algorithms.control_algorithm import control_algorithm
+from gymnasium_env.envs.system import initializations
+
+from gymnasium_env.envs.system.Library import blob_detection as Blob_detect
+from gymnasium_env.envs.system.Library import data_extractor
+from gymnasium_env.envs.system.Library import functions
+from gymnasium_env.envs.system.Library import pyspin_wrapper as PySpin_lib
 
 
 class mywindow(QMainWindow, Ui_MainWindow):
@@ -116,7 +117,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         ) = self.getFileNames()
 
         # Data extractor attribute which allows logging and saving of data for "data logging" and "solenoid calibration mode"
-        self.data_extractor = Library.data_extractor.data_extractor(
+        self.data_extractor = data_extractor.data_extractor(
             self.coil_locs,
             initializations.COIL_NAMES,
         )
@@ -331,7 +332,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         for val in coil_vals:
             vals.append(
                 round(
-                    Library.functions.current_frac_to_formatted(
+                    functions.current_frac_to_formatted(
                         val,
                         initializations.GUI_ZERO_VAL,
                         initializations.GUI_OUTPUT_RANGE,
@@ -370,7 +371,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         for val in coil_vals:
             vals.append(
                 round(
-                    Library.functions.current_frac_to_formatted(
+                    functions.current_frac_to_formatted(
                         val,
                         initializations.GUI_ZERO_VAL,
                         initializations.GUI_OUTPUT_RANGE,
@@ -589,7 +590,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
     def loadPathFromFile(self):
         try:
             # Opens the Path Data.txt file which is placed in the same directory as this file
-            with open("Path Data.txt", "r") as f:
+            with open(os.path.dirname(__file__) + "/Path Data.txt", "r") as f:
                 path_data = f.readlines()
                 temp = []
 
@@ -959,7 +960,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         particle_locs_img = []
         for particle_loc in self.particle_locs:
             particle_locs_img.append(
-                Library.functions.absolute_to_image(
+                functions.absolute_to_image(
                     particle_loc[0],
                     particle_loc[1],
                     initializations.GUI_FRAME_WIDTH,
@@ -976,7 +977,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         self.particle_locs = []
         for particle_loc_img in particle_locs_img:
             self.particle_locs.append(
-                Library.functions.image_to_absolute(
+                functions.image_to_absolute(
                     particle_loc_img[0],
                     particle_loc_img[1],
                     initializations.GUI_FRAME_WIDTH,
@@ -996,7 +997,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         # If particle has been found once, then draw the particle at the last know location
         if self.flag_detecting_objects:
             for i in range(len(particle_locs)):
-                particle_loc_img = Library.functions.absolute_to_image(
+                particle_loc_img = functions.absolute_to_image(
                     particle_locs[i][0],
                     particle_locs[i][1],
                     initializations.GUI_FRAME_WIDTH,
@@ -1022,7 +1023,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         # If flag to show solenoid state is on, iterates over all coils and draws them
         if self.flag_show_solenoid_state:
             for i in range(len(self.coil_locs)):
-                coil_loc_img = Library.functions.absolute_to_image(
+                coil_loc_img = functions.absolute_to_image(
                     coil_locs[i][0],
                     coil_locs[i][1],
                     initializations.GUI_FRAME_WIDTH,
@@ -1046,7 +1047,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
                 # When user is setting multiple goals, the first goal is the goal prior to
                 # multiple goals mode, so it should not be drawn.
                 if not self.flag_setting_multiple_goals or i != 0:
-                    goal_loc_img = Library.functions.absolute_to_image(
+                    goal_loc_img = functions.absolute_to_image(
                         goal_locs[i][0],
                         goal_locs[i][1],
                         initializations.GUI_FRAME_WIDTH,
@@ -1091,14 +1092,14 @@ class mywindow(QMainWindow, Ui_MainWindow):
         # If user is not setting multiple goals right now, and flag to show goal vector is on,
         # then draws the goal vector to the first goal in list
         if self.flag_show_goal_vector and not self.flag_setting_multiple_goals:
-            particle_loc_img = Library.functions.absolute_to_image(
+            particle_loc_img = functions.absolute_to_image(
                 particle_loc[0],
                 particle_loc[1],
                 initializations.GUI_FRAME_WIDTH,
                 initializations.GUI_FRAME_HEIGHT,
             )
 
-            goal_loc_img = Library.functions.absolute_to_image(
+            goal_loc_img = functions.absolute_to_image(
                 goal_locs[0][0],
                 goal_locs[0][1],
                 initializations.GUI_FRAME_WIDTH,
@@ -1254,7 +1255,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         # Distance of particle to the goal to compare to GUI_MULTIPLE_GOALS_ACCURACY.
         # If it is lower, then the goal is considered "reached" and removed from the list.
-        d = Library.functions.distance(
+        d = functions.distance(
             self.particle_locs[0][0],
             self.particle_locs[0][1],
             self.goal_locs[0][0],
@@ -1289,7 +1290,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.coil_vals = control_algorithm.get_coil_vals(
                 self.particle_locs[0], self.goal_locs[0], self.coil_vals, self.coil_locs
             )
-            self.coil_vals = Library.functions.limit_coil_vals(self.coil_vals)
+            self.coil_vals = functions.limit_coil_vals(self.coil_vals)
             self.sendCartString(self.coil_vals)
             self.sendDiagString(self.coil_vals)
 

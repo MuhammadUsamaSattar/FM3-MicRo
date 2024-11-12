@@ -1,10 +1,7 @@
 import math
 
-import numpy as np
-
-import initializations
-
-import Library.functions
+from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.system.Library import functions
 
 
 def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
@@ -33,7 +30,7 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
             min_coil.append(i)
 
     for i in min_coil:
-        coil_vals[i] = Library.functions.distance(
+        coil_vals[i] = functions.distance(
             particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
         ) * math.cos(delta_angles[i]) / (initializations.SIM_SOL_CIRCLE_RAD * 2)
 

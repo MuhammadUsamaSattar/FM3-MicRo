@@ -1,10 +1,7 @@
 import math
 
-import numpy as np
-
-import initializations
-
-import Library.functions
+from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.system.Library import functions
 
 
 def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
@@ -49,10 +46,10 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
     # ************************** CONTROL THE PARTICLE IN THE DIAGONAL DIRECTIONS **************************
     # Goal location is tranformed in a new co-ordinate system that is 45 degrees to the orignal one. 
     # This simplifies the calculations for difference between current location and goal location.
-    goal_loc_rotated = Library.functions.rotate_frame(
+    goal_loc_rotated = functions.rotate_frame(
         goal_loc[0], goal_loc[1], math.pi / 4
     )
-    particle_loc_rotated = Library.functions.rotate_frame(
+    particle_loc_rotated = functions.rotate_frame(
         particle_loc[0], particle_loc[1], math.pi / 4
     )
 

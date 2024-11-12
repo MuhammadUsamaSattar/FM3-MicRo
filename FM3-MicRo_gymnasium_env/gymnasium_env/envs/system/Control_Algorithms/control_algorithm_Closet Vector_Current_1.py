@@ -1,11 +1,5 @@
 import math
 
-import numpy as np
-
-import initializations
-
-import Library.functions
-
 
 def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
     """Calculates the current values for given particle location, goal location and coil values
@@ -29,9 +23,7 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
         if  alpha < angle:
             angle = alpha
             min_coil = i
-
-    coil_vals[min_coil] = Library.functions.distance(
-        particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
-    ) / (initializations.SIM_SOL_CIRCLE_RAD * 2)
+        
+    coil_vals[min_coil] = 1
 
     return coil_vals

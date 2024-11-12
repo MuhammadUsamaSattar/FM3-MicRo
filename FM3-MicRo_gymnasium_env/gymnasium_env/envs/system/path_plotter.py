@@ -1,8 +1,9 @@
 import csv
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-import initializations
+from gymnasium_env.envs.system import initializations
 
 # File location. Change this to plot other .csv files.
 # There are two ways to specify paths:
@@ -20,7 +21,7 @@ y = []
 goal_locs = []
 
 # Opens the file and reads data
-with open(filename, mode="r") as file:
+with open(os.path.dirname(__file__) + "/" + filename, mode="r") as file:
     csvFile = csv.reader(file)
 
     i = 0

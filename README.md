@@ -1,3 +1,5 @@
+**`NOTE: This description is for the summer job project. This needs to be updated once the thesis matures a bit.`**
+
 # Particle Mainpulator
 This repository is the code base for Micro- and Nano-robotics Course's Lab offered at by Robotic Instruments Lab at Aalto University, Finland. 
 

@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
-import Library.functions
+from gymnasium_env.envs.system.Library import functions
 
 
 def printTrialsAndDataCount(data):
@@ -282,7 +282,7 @@ def createPredictor(data, current_vals_to_train_on, type):
 
         # Saves the model
         os.makedirs("Models/", exist_ok=True)
-        with open("Models/Predict_rdot_from_I_r.pkl", "wb") as f:
+        with open(os.path.dirname(__file__) + "/Models/Predict_rdot_from_I_r.pkl", "wb") as f:
             pickle.dump(model, f)
 
         return model
@@ -601,7 +601,7 @@ def readAndProcessFiles(filenames):
     data = {"t": [[]], "I": [[]], "r": [[]]}
 
     for file in filenames:
-        with open("Data/" + file, mode="r") as file:
+        with open(os.path.dirname(__file__) + "/Data/" + file, mode="r") as file:
             csvFile = csv.reader(file)
 
             i = 0
@@ -617,7 +617,7 @@ def readAndProcessFiles(filenames):
                     solenoid_loc = line[3][1:-1].split(", ")
                     solenoid_loc = list(map(int, solenoid_loc))
 
-                    r = Library.functions.distance(
+                    r = functions.distance(
                         particle_loc[0],
                         particle_loc[1],
                         solenoid_loc[0],

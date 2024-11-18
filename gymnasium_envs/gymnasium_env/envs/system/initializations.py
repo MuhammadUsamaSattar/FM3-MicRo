@@ -25,8 +25,8 @@ GUI_MULTIPLE_GOALS_ACCURACY = 40  # Pixel distance of particle from goal before 
 
 # Establish communication with the microcontrollers
 GUI_BAUD_RATE = 500000  # This must match the baudRate set in the Arduio IDE
-GUI_SER_CART = serial.Serial("COM4", GUI_BAUD_RATE, timeout=0.5)  # Defines the COM port for Cartesian solenoids
-GUI_SER_DIAG = serial.Serial("COM3", GUI_BAUD_RATE, timeout=0.5)  # Defines the COM port for Diagonal solenoids
+#GUI_SER_CART = serial.Serial("COM4", GUI_BAUD_RATE, timeout=0.5)  # Defines the COM port for Cartesian solenoids
+#GUI_SER_DIAG = serial.Serial("COM3", GUI_BAUD_RATE, timeout=0.5)  # Defines the COM port for Diagonal solenoids
 
 # These variables are used when scaling the solenoid values that are sent to the Arduino microcontrollers
 # An arbitrary value is added to all coil values before sending them. This value is the subtracted from the recieved values in the Arduino code

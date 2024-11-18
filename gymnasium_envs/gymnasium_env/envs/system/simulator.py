@@ -16,21 +16,24 @@ from gymnasium_env.envs.system.Library.pygame_recorder import ScreenRecorder
 
 
 class Simulator:
-    """Class for the simulator object which runs and updates the pygame screen and hanldes inputs
+    """Class for the simulator object which runs and updates the pygame canvas and hanldes inputs
     """    
 
     def __init__(self, framerate):
         """Initializes all the required class attributes such as particle location, particle velocity,
         goal locations, solenoids currents and flags for modifying the runFrame() method.
         """
-        # Attribute to hold the pygame screen
-        self.screen = None
-
-        # Attribute to hold the pygame screen framerate
-        self.framerate = framerate
+        # Attribute to hold the pygame window
+        self.window = None
 
         # Attribute to hold the pygame clock
-        self.clock = pygame.time.Clock()  # Clock to limit the game fps
+        self.clock = None
+
+        # Attribute to hold the pygame canvas
+        self.canvas = pygame.Surface([initializations.SIM_FRAME_WIDTH, initializations.SIM_FRAME_HEIGHT])
+
+        # Attribute to hold the pygame canvas framerate
+        self.framerate = framerate
 
         # Attributes to hold the particle and goal locations
         self.particle_loc = [0, 0]
@@ -53,7 +56,7 @@ class Simulator:
         self.flag_setting_multiple_goals = False  # Flag to detect if multiple goals mode has been turned on
         self.flag_log = False  # Flag to detect if logging mode has been turned on
 
-        self.flag_record = False  # Flag to detect if screen is being recorded
+        self.flag_record = False  # Flag to detect if canvas is being recorded
 
         self.coil_vals = [
             0.0 for _ in initializations.COIL_NAMES
@@ -93,15 +96,17 @@ class Simulator:
     def renderInit(self):
         pygame.init()
 
-        self.screen = pygame.display.set_mode(
+        self.window = pygame.display.set_mode(
             [initializations.SIM_FRAME_WIDTH, initializations.SIM_FRAME_HEIGHT]
         )  # Set up the drawing window
 
-    def drawSolenoidState(self, screen, coil_value, x, y):
+        self.clock = pygame.time.Clock()
+
+    def drawSolenoidState(self, canvas, coil_value, x, y):
         """Draws a circle at the [x, y] location with color depending upon coil_value
 
         Args:
-            screen : pygame screen object on which to draw
+            canvas : pygame canvas object on which to draw
             coil_value : Scaled value of the current
             x : x co-ordinate of the solenoid
             y : y co-ordinate of the solenoid
@@ -126,13 +131,13 @@ class Simulator:
                          * (initializations.SIM_SOL_COLOR[i] / initializations.SIM_COLOR_DIVS)
                 )
 
-        pygame.draw.circle(screen, color, (x, y), initializations.SIM_SOL_RAD)
+        pygame.draw.circle(canvas, color, (x, y), initializations.SIM_SOL_RAD)
 
-    def drawSolenoids(self, screen, coil_locs, coil_vals):
+    def drawSolenoids(self, canvas, coil_locs, coil_vals):
         """Draws all the solenoids at their respective locations according to the coil_vals
 
         Args:
-            screen : pygame screen object on which to draw
+            canvas : pygame canvas object on which to draw
             coil_locs : List of size 8 containing locations of coils starting from Northern coil
             coil_vals : List of size 8 containing scaled currents starting from Northern coil
         """        
@@ -145,14 +150,14 @@ class Simulator:
             )
 
             self.drawSolenoidState(
-                screen, coil_vals[i], coil_loc_img[0], coil_loc_img[1]
+                canvas, coil_vals[i], coil_loc_img[0], coil_loc_img[1]
             )
 
-    def drawParticle(self, screen, particle_loc):
+    def drawParticle(self, canvas, particle_loc):
         """Draws the particle
 
         Args:
-            screen : pygame screen object on which to draw
+            canvas : pygame canvas object on which to draw
             particle_loc :Location of the particle
         """        
         particle_loc_img = functions.absolute_to_image(
@@ -163,17 +168,17 @@ class Simulator:
         )
 
         pygame.draw.circle(
-            screen,
+            canvas,
             initializations.SIM_PARTICLE_COLOR,
             particle_loc_img,
             initializations.SIM_PARTICLE_RAD,
         )
 
-    def drawGoalPosition(self, screen, goal_loc):
+    def drawGoalPosition(self, canvas, goal_loc):
         """Draws the goals
 
         Args:
-            screen : Screen object on which to draw
+            canvas : canvas object on which to draw
             goal_loc : Location of the goal
         """        
         goal_loc_img = functions.absolute_to_image(
@@ -184,7 +189,7 @@ class Simulator:
         )
 
         pygame.draw.line(
-            screen,
+            canvas,
             initializations.SIM_GOAL_COLOR,
             (
                 goal_loc_img[0] + initializations.SIM_GOAL_SIZE,
@@ -198,7 +203,7 @@ class Simulator:
         )
 
         pygame.draw.line(
-            screen,
+            canvas,
             initializations.SIM_GOAL_COLOR,
             (
                 goal_loc_img[0] + initializations.SIM_GOAL_SIZE,
@@ -211,11 +216,11 @@ class Simulator:
             initializations.SIM_GOAL_THICKNESS,
         )
 
-    def drawGoalVector(self, screen, particle_loc, goal_loc):
+    def drawGoalVector(self, canvas, particle_loc, goal_loc):
         """Draws the vector from particle to goal
 
         Args:
-            screen : Screen object on which to draw
+            canvas : canvas object on which to draw
             particle_loc : Location of particle
             goal_loc : Location of goal
         """        
@@ -233,18 +238,18 @@ class Simulator:
         )
 
         pygame.draw.line(
-            screen,
+            canvas,
             initializations.SIM_GOAL_VECTOR_COLOR,
             (particle_loc_img[0], particle_loc_img[1]),
             (goal_loc_img[0], goal_loc_img[1]),
             initializations.SIM_GOAL_VECTOR_THICKNESS,
         )
 
-    def drawText(self, screen, particle_loc, goal_loc, flag_edit_particle_keyboard, flag_edit_goal_keyboard):
-        """Draws all text objects on screen
+    def drawText(self, canvas, particle_loc, goal_loc, flag_edit_particle_keyboard, flag_edit_goal_keyboard):
+        """Draws all text objects on canvas
 
         Args:
-            screen : pygame screen object on which to draw
+            canvas : pygame canvas object on which to draw
             particle_loc : Location of the particle
             goal_loc : Location of the current goal
             flag_edit_particle_keyboard : Flag to detect if the user has clicked on the particle text to modify the position
@@ -260,7 +265,7 @@ class Simulator:
             initializations.SIM_TEXT_SIZE / 4,
             initializations.SIM_FRAME_HEIGHT - (3 * initializations.SIM_TEXT_SIZE),
         )
-        screen.blit(text, textRect)
+        canvas.blit(text, textRect)
 
         # Draws the text "Goal Location: "
         txt = "Goal Location: "
@@ -270,7 +275,7 @@ class Simulator:
             initializations.SIM_TEXT_SIZE / 4,
             initializations.SIM_FRAME_HEIGHT - (1 * initializations.SIM_TEXT_SIZE),
         )
-        screen.blit(text, textRect)
+        canvas.blit(text, textRect)
 
         # If user is not editing particle location through text input, then display
         # the particle position otherwise display the text that has been entered so far.
@@ -282,7 +287,7 @@ class Simulator:
                 initializations.SIM_TEXT_SIZE * 10,
                 initializations.SIM_FRAME_HEIGHT - (3 * initializations.SIM_TEXT_SIZE),
             )
-            screen.blit(text, self.textRect_particle)
+            canvas.blit(text, self.textRect_particle)
 
         else:
             text = font.render(
@@ -293,7 +298,7 @@ class Simulator:
                 initializations.SIM_TEXT_SIZE * 10,
                 initializations.SIM_FRAME_HEIGHT - (3 * initializations.SIM_TEXT_SIZE),
             )
-            screen.blit(text, self.textRect_particle)
+            canvas.blit(text, self.textRect_particle)
 
         # If user is not editing goal location through text input, then display
         # the goal position otherwise display the text that has been entered so far.
@@ -305,7 +310,7 @@ class Simulator:
                 initializations.SIM_TEXT_SIZE * 8,
                 initializations.SIM_FRAME_HEIGHT - (1 * initializations.SIM_TEXT_SIZE),
             )
-            screen.blit(text, self.textRect_goal)
+            canvas.blit(text, self.textRect_goal)
 
         else:
             text = font.render(
@@ -316,7 +321,7 @@ class Simulator:
                 initializations.SIM_TEXT_SIZE * 8,
                 initializations.SIM_FRAME_HEIGHT - (1 * initializations.SIM_TEXT_SIZE),
             )
-            screen.blit(text, self.textRect_goal)
+            canvas.blit(text, self.textRect_goal)
 
         # Displays text indication for Multiple Goals Mode and its current status which can be On, Off or Executing Multiple Goals Motion
         if self.flag_setting_multiple_goals:
@@ -332,7 +337,7 @@ class Simulator:
             initializations.SIM_TEXT_SIZE * 0.5,
             initializations.SIM_TEXT_SIZE * 2,
         )
-        screen.blit(text, textRect)
+        canvas.blit(text, textRect)
 
         # Displays text indication for Logging Mode and its current status which can be On or Off
         if self.flag_log:
@@ -345,7 +350,7 @@ class Simulator:
             initializations.SIM_TEXT_SIZE * 0.5,
             initializations.SIM_TEXT_SIZE * 4,
         )
-        screen.blit(text, textRect)
+        canvas.blit(text, textRect)
 
         # Displays text indication for Video Recording and its current status which can be On or Off
         if self.flag_record:
@@ -358,11 +363,11 @@ class Simulator:
             initializations.SIM_TEXT_SIZE * 0.5,
             initializations.SIM_TEXT_SIZE * 6,
         )
-        screen.blit(text, textRect)
+        canvas.blit(text, textRect)
 
     def drawElements(
         self,
-        screen,
+        canvas,
         particle_loc,
         goal_locs,
         coil_locs,
@@ -371,32 +376,31 @@ class Simulator:
         flag_edit_goal_keyboard,
         render,
     ):
-        """Draws all screen elements
+        """Draws all canvas elements
 
         Args:
-            screen : Screen on which to draw
+            canvas : canvas on which to draw
             particle_loc : Location of particle
             goal_locs : Locations of goals
             coil_locs : List of size 8 containing locations of solenoids
             coil_vals : List of size 8 containing scaled currents
             flag_edit_particle_keyboard : Flag to detect if the user has clicked on the particle text to modify the position
             flag_edit_goal_keyboard : Flag to detect if the user has clicked on the goal text to modify the position
-            render : Determines if screen needs to be rendered
         """
         if render:
-            self.drawText(screen, particle_loc, goal_locs[0], flag_edit_particle_keyboard, flag_edit_goal_keyboard)
-            self.drawSolenoids(screen, coil_locs, coil_vals)
-            self.drawGoalVector(screen, particle_loc, goal_locs[0])
+            self.drawText(canvas, particle_loc, goal_locs[0], flag_edit_particle_keyboard, flag_edit_goal_keyboard)
+        self.drawSolenoids(canvas, coil_locs, coil_vals)
+        self.drawGoalVector(canvas, particle_loc, goal_locs[0])
 
-            for i in range(len(goal_locs)):
-                # If multiple goals are being set, skip the first goal since it is the goal before multiple goals were being set.
-                # This old goal is necessary to keep in case the user quits the multiple goal mode without setting any new ones.
-                if self.flag_setting_multiple_goals and i == 0:
-                    continue
+        for i in range(len(goal_locs)):
+            # If multiple goals are being set, skip the first goal since it is the goal before multiple goals were being set.
+            # This old goal is necessary to keep in case the user quits the multiple goal mode without setting any new ones.
+            if self.flag_setting_multiple_goals and i == 0:
+                continue
 
-                self.drawGoalPosition(screen, goal_locs[i])
+            self.drawGoalPosition(canvas, goal_locs[i])
 
-            self.drawParticle(screen, particle_loc)
+        self.drawParticle(canvas, particle_loc)
 
     def calcRDot(self, I, r, alpha):
         """Calculates the velocity of particle towards a solenoid
@@ -481,7 +485,7 @@ class Simulator:
                 particle_loc[1] + particle_vel[1] * dt,
             ]
 
-            # Prevents the particle from going too far off from the screen.
+            # Prevents the particle from going too far off from the canvas.
             # Most likely not required anymore since particle position is updated according to a robust model now.
             # Nevertheless good to keep in case of unexpectedly high velocities.
             out_of_bounds_control_factor = 1.1
@@ -786,14 +790,14 @@ class Simulator:
                 # Checks if "v" was pressed
                 elif event.key == pygame.K_v:
 
-                    # If screen was being recorded, stop recording screen and save it
+                    # If canvas was being recorded, stop recording canvas and save it
                     if self.flag_record:
                         print("Video saved to: Data/Simulator_Data_" + self.date_time + "/Recording_" + str(self.video_num) + ".avi")
                         self.recorder.end_recording()  # Finishes and saves the recording
 
                         self.video_num += 1
 
-                    # If screen was not being recorded, start recording screen
+                    # If canvas was not being recorded, start recording canvas
                     else:
                         print("Starting")
 
@@ -852,8 +856,9 @@ class Simulator:
 
         Args:
             running : Determines whether program is still running
+            coil_vals : Normalized coil current values
             prev_time : Time stamp of previous frame in seconds
-            render : Determines if screen should be rendered
+            render : Determines if canvas should be rendered
 
         Returns:
             bool: Determines whether program is still running
@@ -891,34 +896,39 @@ class Simulator:
 
         coil_vals = functions.limit_coil_vals(coil_vals)
 
+        self.canvas.fill((255, 255, 255))
+
         if render:
-            if self.screen == None:
+            if self.window is None and self.clock is None:
                 self.renderInit()
 
             running = self.eventHandler()
 
-            self.screen.fill((255, 255, 255))
-            self.drawElements(
-                self.screen,
-                self.particle_loc,
-                self.goal_locs,
-                self.coil_locs,
-                coil_vals,
-                self.flag_edit_particle_keyboard,
-                self.flag_edit_goal_keyboard,
-                render,
-            )
+        else:
+            if self.window != None:
+                self.close()
 
-            pygame.display.flip()
+        self.drawElements(
+            self.canvas,
+            self.particle_loc,
+            self.goal_locs,
+            self.coil_locs,
+            coil_vals,
+            self.flag_edit_particle_keyboard,
+            self.flag_edit_goal_keyboard,
+            render,
+        )
+
+        if render:
+            #pygame.display.flip()
+            self.window.blit(self.canvas, self.canvas.get_rect())
+            pygame.event.pump()
+            pygame.display.update()
 
             self.clock.tick(self.framerate)  # Sleeps in between loop so that fps is equal to self.framerate
 
-        else:
-            if self.screen != None:
-                self.close()
-
         if self.flag_record:
-            self.recorder.capture_frame(self.screen)
+            self.recorder.capture_frame(self.canvas)
 
         # Changes the position of the particle to the in-bound mouse location
         if self.flag_edit_particle_mouse:
@@ -998,7 +1008,7 @@ class Simulator:
         self.flag_setting_multiple_goals = False  # Flag to detect if multiple goals mode has been turned on
         self.flag_log = False  # Flag to detect if logging mode has been turned on
 
-        self.flag_record = False  # Flag to detect if screen is being recorded
+        self.flag_record = False  # Flag to detect if canvas is being recorded
 
         self.coil_vals = [
             0.0 for _ in initializations.COIL_NAMES

@@ -4,6 +4,7 @@ import time
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
+import pygame
 
 from gymnasium_env.envs.system.Library import functions
 from gymnasium_env.envs.system.simulator import Simulator
@@ -12,12 +13,11 @@ from gymnasium_env.envs.system import initializations
 
 class SingleParticleNoCargo(gym.Env):
     """Custom Gymnasium Environment wrapping a Pygame-based Simulator."""
-    metadata = {'render_modes': ['human'], "framerate" : 60}
+    metadata = {'render_modes': ['human', 'rgb_array'], "render_fps" : 60}
 
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, episode_time_limit=5):
         # Initialize the simulator
-        print(render_mode)
-        self.simulator = Simulator(self.metadata['framerate'])
+        self.simulator = Simulator(self.metadata['render_fps'])
 
         # Define observation space: 2D particle location (-r to r) and 2D goal location (-r to r)
         r = initializations.SIM_SOL_CIRCLE_RAD
@@ -30,10 +30,11 @@ class SingleParticleNoCargo(gym.Env):
         self.action_space = spaces.Box(low=0.0, high=1.0, shape=(8,), dtype=np.float32)
 
         self.running = True
-        self.prev_time = time.time()
 
         assert render_mode == None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
+
+        self.episode_time_limit = episode_time_limit
 
     def _get_obs(self):
         particle_loc, goal_loc, _, _ = self.simulator.getState()
@@ -61,19 +62,17 @@ class SingleParticleNoCargo(gym.Env):
         obs = self._get_obs()
         info = self._get_info()
 
+        self.frame_time = time.time()
+        self.episode_time = time.time()
+
         return obs, info
 
     def step(self, action):
         """Apply action and return the new observation, reward, done, and info."""
-        render = False
-        if str(self.render_mode) == 'human':
-            render = True
+        render = (str(self.render_mode) == 'human')
 
         # Run one frame of the simulator
-        self.running, self.prev_time = self.simulator.step(self.running, self.prev_time, action, render)
-
-        # Get the current state from the simulator
-        particle_loc, goal_loc, coil_vals, _ = self.simulator.getState()
+        self.running, self.frame_time = self.simulator.step(self.running, self.frame_time, action, render)
 
         # Extract necessary information from the state
         obs = self._get_obs()
@@ -85,20 +84,23 @@ class SingleParticleNoCargo(gym.Env):
         # Determine if the episode is done (if the particle is close to the goal)
         done = info["distance"] < initializations.SIM_MULTIPLE_GOALS_ACCURACY or not self.running  # Done if close to goal or simulator is closed
 
-        # Prepare the observation
-        obs = self._get_obs()
+        # Determine if the time limit has been reached
+        truncated = ((time.time()-self.episode_time) > (self.episode_time_limit))
 
-        self.close()
+        if self.running == False:
+            self.close()
 
-        return obs, reward, done, False, info
+        self.render()
+
+        return obs, reward, done, truncated, info
 
     def render(self):
         """Render the environment (for now, just use the simulator's rendering)."""
         # You could add a visualization here or just rely on the Pygame window
-        pass
+        if self.render_mode == "rgb_array":
+            return np.transpose(np.array(pygame.surfarray.pixels3d(self.simulator.canvas)), axes=(1, 0, 2))
 
     def close(self):
         """Close the environment and simulator."""
-        if self.running == False:
-            self.simulator.close()
-            sys.exit()
+        self.simulator.close()
+        sys.exit()

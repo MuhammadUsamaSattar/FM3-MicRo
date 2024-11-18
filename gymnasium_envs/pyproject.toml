@@ -9,13 +9,13 @@ authors = [
   { name="Muhammad Usama Sattar", email="usamasattar.3347@gmail.com" },
 ]
 description = "Gym environment wrappers for the pygame simulator and experimental setup."
-readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
+  "pyserial",
   "gymnasium",
   "pre-commit",
   "opencv-python",
@@ -26,5 +26,4 @@ dependencies = [
   "scipy",
   "scikit-learn",
   "PyQt5",
-  "pyserial",
 ]

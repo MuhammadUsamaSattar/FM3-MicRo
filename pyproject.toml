@@ -10,9 +10,7 @@ authors = [
   { name="Muhammad Usama Sattar", email="usamasattar.3347@gmail.com" },
 ]
 
-description = "Foundation Model based Magnetic Manipulation in MICro-RObotics. 
-Ferromagnetic particles are controlled in a 2D plane at air-water interface 
-using Foundation Model based methods."
+description = "Foundation Model based Magnetic Manipulation in MICro-RObotics. Ferromagnetic particles are controlled in a 2D plane at air-water interface using Foundation Model based methods."
 readme = "README.md"
 
 classifiers = [
@@ -21,13 +19,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-requires-python = ">= 3.9"
+requires-python = "== 3.12"
+dynamic = ["dependencies"]
 
-dependencies = [
-  "gymnasium_env",
-  "pytorch>=1.13",
-  "stable-baselines3"
-]
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
 
 [project.urls]
 Homepage = "https://github.com/MuhammadUsamaSattar/FM3-MicRo"

@@ -7,12 +7,12 @@ import pygame
 import pickle
 import numpy as np
 
-from gymnasium_env.envs.system import initializations
-from gymnasium_env.envs.system.Control_Algorithms import control_algorithm
+from gymnasium_env.envs.System import initializations
+from gymnasium_env.envs.System.Control_Algorithms import control_algorithm
 
-from gymnasium_env.envs.system.Library import data_extractor
-from gymnasium_env.envs.system.Library import functions
-from gymnasium_env.envs.system.Library.pygame_recorder import ScreenRecorder
+from gymnasium_env.envs.System.Library import data_extractor
+from gymnasium_env.envs.System.Library import functions
+from gymnasium_env.envs.System.Library.pygame_recorder import ScreenRecorder
 
 
 class Simulator:

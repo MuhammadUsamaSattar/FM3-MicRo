@@ -1,10 +1,10 @@
-#import gymnasium
-#import gymnasium_env
+# import gymnasium
+# import gymnasium_env
 #
 #
-#env = gymnasium.make('gymnasium_env/SingleParticleNoCargo-v0', **{'render_mode' : 'human'})
-#env.reset()
-#while 1:
+# env = gymnasium.make('gymnasium_env/SingleParticleNoCargo-v0', **{'render_mode' : 'human'})
+# env.reset()
+# while 1:
 #    env.step([0.2,0,0,0,0,0,0,0])
 
 
@@ -17,12 +17,17 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 
 if __name__ == "__main__":
     # Parallel environments
-    vec_env = make_vec_env('gymnasium_env/SingleParticleNoCargo-v0', n_envs=8, vec_env_cls=SubprocVecEnv, env_kwargs={'render_mode' : 'rgb_array'})
+    vec_env = make_vec_env(
+        "gymnasium_env/SingleParticleNoCargo-v0",
+        n_envs=8,
+        vec_env_cls=SubprocVecEnv,
+        env_kwargs={"render_mode": "rgb_array", "vlm_reward": True},
+    )
 
     model = PPO("MultiInputPolicy", vec_env, verbose=1, device="cpu")
-    model.learn(total_timesteps=25_00_000)
+    model.learn(total_timesteps=2_0)
 
-    model.save("control_models/ppo_default_parameters_25_00_000_steps")
+    model.save("control_models/ppo_default_parameters_2_500_000_steps")
 
     obs = vec_env.reset()
 

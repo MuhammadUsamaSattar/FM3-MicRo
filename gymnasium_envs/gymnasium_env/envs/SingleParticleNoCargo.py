@@ -6,16 +6,17 @@ import gymnasium as gym
 from gymnasium import spaces
 import pygame
 
-from gymnasium_env.envs.system.Library import functions
-from gymnasium_env.envs.system.simulator import Simulator
-from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.System.Library import functions
+from gymnasium_env.envs.System.simulator import Simulator
+from gymnasium_env.envs.System import initializations
+from gymnasium_env.envs.Library import vlm
 
 
 class SingleParticleNoCargo(gym.Env):
     """Custom Gymnasium Environment wrapping a Pygame-based Simulator."""
     metadata = {'render_modes': ['human', 'rgb_array'], "render_fps" : 60}
 
-    def __init__(self, render_mode=None, episode_time_limit=5):
+    def __init__(self, render_mode=None, episode_time_limit=5, vlm_reward=False):
         # Initialize the simulator
         self.simulator = Simulator(self.metadata['render_fps'])
 
@@ -36,6 +37,10 @@ class SingleParticleNoCargo(gym.Env):
 
         self.episode_time_limit = episode_time_limit
 
+        self.vlm_reward = vlm_reward
+
+        print(vlm_reward) if vlm_reward else print("no")
+
     def _get_obs(self):
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
@@ -47,11 +52,17 @@ class SingleParticleNoCargo(gym.Env):
     def _get_info(self):
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
-        return {
-            "distance": functions.distance(
-                particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
-            )
-        }
+        if self.vlm_reward:
+            return {
+                "reward": 1
+            }
+
+        else:
+            return {
+                "reward": functions.distance(
+                    particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                )
+            }
 
     def reset(self, seed=None, options=None):
         """Reset the environment to an initial state."""
@@ -79,7 +90,7 @@ class SingleParticleNoCargo(gym.Env):
         info = self._get_info()
 
         # Calculate the reward as the negative distance to the goal
-        reward = -info["distance"]
+        reward = -info["reward"]
 
         # Determine if the episode is done (if the particle is close to the goal)
         done = info["distance"] < initializations.SIM_MULTIPLE_GOALS_ACCURACY or not self.running  # Done if close to goal or simulator is closed

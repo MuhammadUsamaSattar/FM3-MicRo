@@ -1,3 +1,10 @@
+# Requirements
+python==3.12
+
+cuda==12.4
+
+All libraries in requirements.txt
+
 **`NOTE: This description is for the summer job project. This needs to be updated once the thesis matures a bit.`**
 
 # Particle Mainpulator

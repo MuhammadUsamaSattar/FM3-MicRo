@@ -1,0 +1,8 @@
+- **ae0c056:** Renamed gymasium env package folder
+- **244774d:** Fourth attempt to fix GitHub pusher. Set the GitHub credentials for both GitHub and GitLab
+- **6ecebc7:** Third attempt to fix GitHub pusher email
+- **af4993b:** Second try to correct username for github repo
+- **9801377:** Insignificant change to see if the email pushing to GitHub is correct
+- **e60b6bb:** Insignificant change to check if gitlab and github are synced
+- **d498f89:** Changed gym env name to FM3-MicRo. Restructured entire package according to package format on python website. Added all project dependencies to the pyproject files.
+- **5fb013a:** Initial commit

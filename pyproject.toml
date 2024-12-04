@@ -5,22 +5,25 @@ build-backend = "hatchling.build"
 [project]
 name = "FM3-MicRo"
 version = "0.0.1"
+
 authors = [
   { name="Muhammad Usama Sattar", email="usamasattar.3347@gmail.com" },
 ]
-description = "Foundation Model based Magnetic Manipulation in MICro-RObotics. 
-Ferromagnetic particles are controlled in a 2D plane at air-water interface 
-using Foundation Model based methods."
+
+description = "Foundation Model based Magnetic Manipulation in MICro-RObotics. Ferromagnetic particles are controlled in a 2D plane at air-water interface using Foundation Model based methods."
 readme = "README.md"
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
-dependencies = [
-  "gymnasium_env",
-]
+requires-python = "== 3.12"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
 
 [project.urls]
 Homepage = "https://github.com/MuhammadUsamaSattar/FM3-MicRo"

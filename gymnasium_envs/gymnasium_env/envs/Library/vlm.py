@@ -57,7 +57,7 @@ class VLM:
             self.model.config.vision_feature_select_strategy
         )
 
-    def get_reward(self, img, txt, tokens):
+    def get_reward(self, img, img_parameter_type, txt, tokens):
         """Generates reward from the input image
 
         Args:
@@ -68,8 +68,12 @@ class VLM:
             float: Reward value of the state
         """
         # prepare image and text prompt, using the appropriate prompt template
-        url = img
-        image = Image.open(requests.get(url, stream=True).raw)
+        if img_parameter_type == "url":
+            url = img
+            image = Image.open(requests.get(url, stream=True).raw)
+
+        elif img_parameter_type == "image":
+            image = img
 
         # Define a chat history and use `apply_chat_template` to get correctly formatted prompt
         # Each value in "content" has to be a list of dicts with types ("text", "image")
@@ -119,6 +123,7 @@ if __name__ == "__main__":
     while True:
         vlm.get_reward(
             img=input("\nEnter URL: "),
+            img_parameter_type="url",
             txt=input("\nEnter prompt: "),
             tokens=int(input("\nEnter tokens: ")),
         )

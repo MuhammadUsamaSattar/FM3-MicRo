@@ -32,15 +32,15 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from gymnasium_env.envs.system.Interface.Ui_interface import *
+from gymnasium_env.envs.System.Interface.Ui_interface import *
 
-from gymnasium_env.envs.system.Control_Algorithms.control_algorithm import control_algorithm
-from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.System.Control_Algorithms.control_algorithm import control_algorithm
+from gymnasium_env.envs.System import initializations
 
-from gymnasium_env.envs.system.Library import blob_detection as Blob_detect
-from gymnasium_env.envs.system.Library import data_extractor
-from gymnasium_env.envs.system.Library import functions
-from gymnasium_env.envs.system.Library import pyspin_wrapper as PySpin_lib
+from gymnasium_env.envs.System.Library import blob_detection as Blob_detect
+from gymnasium_env.envs.System.Library import data_extractor
+from gymnasium_env.envs.System.Library import functions
+from gymnasium_env.envs.System.Library import pyspin_wrapper as PySpin_lib
 
 
 class mywindow(QMainWindow, Ui_MainWindow):

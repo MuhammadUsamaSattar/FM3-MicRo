@@ -1,7 +1,7 @@
 import math
 
-from gymnasium_env.envs.system import initializations
-from gymnasium_env.envs.system.Library import functions
+from gymnasium_env.envs.System import initializations
+from gymnasium_env.envs.System.Library import functions
 
 
 def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):

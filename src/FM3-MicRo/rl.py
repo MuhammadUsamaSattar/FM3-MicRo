@@ -1,13 +1,3 @@
-# import gymnasium
-# import gymnasium_env
-#
-#
-# env = gymnasium.make('gymnasium_env/SingleParticleNoCargo-v0', **{'render_mode' : 'human'})
-# env.reset()
-# while 1:
-#    env.step([0.2,0,0,0,0,0,0,0])
-
-
 import gymnasium as gym
 import gymnasium_env
 
@@ -21,11 +11,11 @@ if __name__ == "__main__":
         "gymnasium_env/SingleParticleNoCargo-v0",
         n_envs=8,
         vec_env_cls=SubprocVecEnv,
-        env_kwargs={"render_mode": "rgb_array", "vlm_reward": True},
+        env_kwargs={"render_mode": "rgb_array", "reward_type": "default"},
     )
 
     model = PPO("MultiInputPolicy", vec_env, verbose=1, device="cpu")
-    model.learn(total_timesteps=2_0)
+    model.learn(total_timesteps=2_500_000)
 
     model.save("control_models/ppo_default_parameters_2_500_000_steps")
 

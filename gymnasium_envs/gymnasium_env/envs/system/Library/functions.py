@@ -1,6 +1,6 @@
 import math
 
-from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.System import initializations
 
 
 def rotate_frame(x, y, angle):

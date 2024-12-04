@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
-from gymnasium_env.envs.system.Library import functions
+from gymnasium_env.envs.System.Library import functions
 
 
 def printTrialsAndDataCount(data):

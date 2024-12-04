@@ -1,7 +1,7 @@
 import subprocess
 import re
-
 from pathlib import Path
+import os
 
 
 # Define your specific Git repository and the subdirectory to handle
@@ -9,12 +9,9 @@ git_repo_url = "git+https://github.com/MuhammadUsamaSattar/FM3-MicRo.git"
 editable_subdirectory = "gymnasium_envs"
 editable_format = f"-e ./{editable_subdirectory}"  # Editable format for the local path
 
-# Define the map of specific PyTorch packages and versions to their URLs
-torch_url_map = {
-    "torch==2.5.1+cu124": "https://download.pytorch.org/whl/cu124",
-    "torchaudio==2.5.1+cu124": "https://download.pytorch.org/whl/cu124",
-    "torchvision==0.20.1+cu124": "https://download.pytorch.org/whl/cu124",
-}
+# Define the path for spinnaker-python that we need to update
+spinnaker_regex = r"spinnaker-python @ file://(.+?spinnaker_python-.*?\.whl)"
+spinnaker_replacement_prefix = "./external-libs/"
 
 # Path to the requirements file
 requirements_file = Path(__file__).parent.parent / "requirements.txt"
@@ -29,26 +26,41 @@ except subprocess.CalledProcessError as e:
     print(f"Error running pip freeze: {e}")
     frozen_requirements = []
 
-# Step 2: Process the output to include custom URLs and handle editable installs
-processed_requirements = []
-for line in frozen_requirements:
-    # 2.1: Replace PyTorch-related packages with custom URLs
-    match = re.match(r"(torch(?:audio|vision)?==([\d.]+)\+cu\d+)", line)
-    if match:
-        package_name = match.group(1)  # Full package line, e.g., torch==2.5.1+cu124
-        if package_name in torch_url_map:
-            # Replace with custom URL format
-            line = f"{package_name} @ {torch_url_map[package_name]}"
+# Step 2: Process the output to handle editable installs and spinnaker-python fix
+torch_dependencies = []  # To store the PyTorch-related dependencies
+other_dependencies = []  # To store all other dependencies
 
-    # 2.2: Replace the specific Git repository link with an editable install format for gymnasium_envs
+for line in frozen_requirements:
+    # 2.1: Handle the editable install for gymnasium_envs
     if git_repo_url in line and editable_subdirectory in line:
-        # Replace with the editable install format
         line = editable_format
 
-    processed_requirements.append(line)
+    # 2.2: Handle spinnaker-python and adjust its file path
+    if "spinnaker-python" in line:
+        match = re.search(spinnaker_regex, line)
+        if match:
+            full_path = match.group(1)
+            # Normalize the path for Windows by ensuring that the path uses forward slashes
+            normalized_path = os.path.normpath(full_path).replace("\\", "/")
+            # Ensure the relative path part starts after 'external-libs/'
+            relative_path = normalized_path.split("external-libs")[-1]  # Keep only the relative part after 'external-libs/'
+            relative_path = relative_path.lstrip('/')  # Remove any leading slashes
+            line = f"{spinnaker_replacement_prefix}{relative_path}"
+
+    # 2.3: Separate the dependencies into PyTorch-related ones and others
+    if re.match(r"(torch(?:audio|vision)?==([\d.]+)\+cu\d+)", line):
+        torch_dependencies.append(line)
+    else:
+        other_dependencies.append(line)
 
 # Step 3: Write the updated requirements to the file
 with open(requirements_file, "w") as file:
-    file.write("\n".join(processed_requirements) + "\n")
+    # First write the torch-related dependencies with the URL at the top
+    file.write("--index-url https://download.pytorch.org/whl/cu124\n")
+    file.write("\n".join(torch_dependencies) + "\n")
+    
+    # Then add the fallback PyPI URL and all other dependencies
+    file.write("--extra-index-url https://pypi.org/simple\n")
+    file.write("\n".join(other_dependencies) + "\n")
 
 print(f"Updated requirements written to {requirements_file}")

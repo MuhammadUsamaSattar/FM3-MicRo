@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gymnasium_env.envs.system import initializations
+from gymnasium_env.envs.System import initializations
 
 # File location. Change this to plot other .csv files.
 # There are two ways to specify paths:

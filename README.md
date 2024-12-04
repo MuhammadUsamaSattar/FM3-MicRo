@@ -1,9 +1,11 @@
 # Requirements
-python==3.12
+python==3.10
 
 cuda==12.4
 
 All libraries in requirements.txt
+
+Spinnaker python library is installed from the requirements.txt file while Spinnaker SDK needs to be installed from: https://www.teledynevisionsolutions.com/en-150/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/#anchor8
 
 **`NOTE: This description is for the summer job project. This needs to be updated once the thesis matures a bit.`**
 

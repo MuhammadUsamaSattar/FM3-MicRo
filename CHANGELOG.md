@@ -1,3 +1,4 @@
+- **d151eca:** Setup llm module, vlm module and dev-scripts
 - **ae0c056:** Renamed gymasium env package folder
 - **244774d:** Fourth attempt to fix GitHub pusher. Set the GitHub credentials for both GitHub and GitLab
 - **6ecebc7:** Third attempt to fix GitHub pusher email

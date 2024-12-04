@@ -13,15 +13,15 @@ def iden_blob_detect(im, particle_locs, particle_rads):
         bool: Determines if particle has been lost
         list : List of size 2 containing new location of particle
         int : New radius of particle
-    """    
+    """
     blob_lost = False
 
     # Setup SimpleBlobDetector parameters
     params = cv2.SimpleBlobDetector_Params()
 
     # Change thresholds
-    #params.minThreshold = 1
-    #params.maxThreshold = 200
+    # params.minThreshold = 1
+    # params.maxThreshold = 200
 
     # Filter by Area
     params.filterByArea = True
@@ -49,11 +49,11 @@ def iden_blob_detect(im, particle_locs, particle_rads):
 
     keypoints = detector.detect(im)  # Detects blob(s)
 
-    # Assigns new particle location and radius if particle was detected. 
+    # Assigns new particle location and radius if particle was detected.
     # Otherwise, return blob_lost as True.
     if len(keypoints) > 0:
         particle_locs = [list(map(int, keypoint.pt)) for keypoint in keypoints]
-        particle_rads = [int(keypoint.size/2) for keypoint in keypoints]
+        particle_rads = [int(keypoint.size / 2) for keypoint in keypoints]
 
     else:
         blob_lost = True

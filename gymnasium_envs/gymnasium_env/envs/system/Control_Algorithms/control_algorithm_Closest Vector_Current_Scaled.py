@@ -21,9 +21,13 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
 
     for i in range(len(coil_vals)):
         coil_vals[i] = 0
-        alpha = abs(math.atan2(goal_loc[1]-particle_loc[1], goal_loc[0]-particle_loc[0]) - 
-                    math.atan2(coil_locs[i][1]-particle_loc[1], coil_locs[i][0]-particle_loc[0]))
-        if  alpha < angle:
+        alpha = abs(
+            math.atan2(goal_loc[1] - particle_loc[1], goal_loc[0] - particle_loc[0])
+            - math.atan2(
+                coil_locs[i][1] - particle_loc[1], coil_locs[i][0] - particle_loc[0]
+            )
+        )
+        if alpha < angle:
             angle = alpha
             min_coil = i
 

@@ -15,46 +15,38 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
 
     Returns:
         list: List of size 8 containing scaled current values where 0th element corresponds to Northern coil
-    """    
+    """
     # Automatic control PID gains
     k = {"p": 2, "i": 0, "d": 0}
 
     # ************************** CONTROL THE PARTICLE IN THE North South East West DIRECTIONS **************************
-    # Calculates the gains by calculating the distance between particle and goal in the direction 
-    # connecting the pair of solenoids. This difference is normalized by dividing by the diameter 
+    # Calculates the gains by calculating the distance between particle and goal in the direction
+    # connecting the pair of solenoids. This difference is normalized by dividing by the diameter
     # of solenoid circle which is esentially the workspace.
     gainNS = (
         1.0
         * k["p"]
-        * (
-            (goal_loc[1] - particle_loc[1])
-            / (initializations.GUI_SOL_CIRCLE_RAD * 2)
-        )
+        * ((goal_loc[1] - particle_loc[1]) / (initializations.GUI_SOL_CIRCLE_RAD * 2))
     )
     gainEW = (
         1.0
         * k["p"]
-        * (
-            (goal_loc[0] - particle_loc[0])
-            / (initializations.GUI_SOL_CIRCLE_RAD * 2)
-        )
+        * ((goal_loc[0] - particle_loc[0]) / (initializations.GUI_SOL_CIRCLE_RAD * 2))
     )
 
     coil_vals[0], coil_vals[2], coil_vals[4], coil_vals[6] = calc_coil_vals(
         gainNS, gainEW
     )
     # ************************** CONTROL THE PARTICLE IN THE DIAGONAL DIRECTIONS **************************
-    # Goal location is tranformed in a new co-ordinate system that is 45 degrees to the orignal one. 
+    # Goal location is tranformed in a new co-ordinate system that is 45 degrees to the orignal one.
     # This simplifies the calculations for difference between current location and goal location.
-    goal_loc_rotated = functions.rotate_frame(
-        goal_loc[0], goal_loc[1], math.pi / 4
-    )
+    goal_loc_rotated = functions.rotate_frame(goal_loc[0], goal_loc[1], math.pi / 4)
     particle_loc_rotated = functions.rotate_frame(
         particle_loc[0], particle_loc[1], math.pi / 4
     )
 
-    # Calculates the gains by calculating the distance between particle and goal in the direction 
-    # connecting the pair of solenoids. This difference is normalized by dividing by the diameter 
+    # Calculates the gains by calculating the distance between particle and goal in the direction
+    # connecting the pair of solenoids. This difference is normalized by dividing by the diameter
     # of solenoid circle which is essentially the workspace.
     gainNeSw = (
         1
@@ -79,6 +71,7 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
 
     return coil_vals
 
+
 def calc_coil_vals(UDGain, RLGain):
     """Decides which coil to turn on amongst the two pairs of coils
 
@@ -91,7 +84,7 @@ def calc_coil_vals(UDGain, RLGain):
         float: Scaled current value of Right direction coil
         float: Scaled current value of Down direction coil
         float: Scaled current value of Left direction coil
-    """    
+    """
 
     if UDGain > 0:
         value1 = UDGain

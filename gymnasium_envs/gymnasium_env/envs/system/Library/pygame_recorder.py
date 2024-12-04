@@ -8,9 +8,10 @@ import pygame
 
 class ScreenRecorder:
     """
-        This class is used to record a PyGame surface and save it to a video file.
+    This class is used to record a PyGame surface and save it to a video file.
     """
-    def __init__(self, width, height, fps, out_file='output.avi'):
+
+    def __init__(self, width, height, fps, out_file="output.avi"):
         """
         Initialize the recorder with parameters of the surface.
         :param width: Width of the surface to capture
@@ -18,10 +19,12 @@ class ScreenRecorder:
         :param fps: Frames per second
         :param out_file: Output file to save the recording
         """
-        print(f'Initializing ScreenRecorder with parameters width:{width} height:{height} fps:{fps}.')
+        print(
+            f"Initializing ScreenRecorder with parameters width:{width} height:{height} fps:{fps}."
+        )
 
         # define the codec and create a video writer object
-        four_cc = cv2.VideoWriter_fourcc(*'XVID')
+        four_cc = cv2.VideoWriter_fourcc(*"XVID")
         self.video = cv2.VideoWriter(out_file, four_cc, float(fps), (width, height))
 
     def capture_frame(self, surf):
@@ -49,6 +52,7 @@ class ScreenRecorder:
         """
         # stop recording
         self.video.release()
+
 
 # References
 #   For more tutorials on cv2.VideoWriter, go to:

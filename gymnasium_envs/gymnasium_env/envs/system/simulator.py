@@ -1,23 +1,21 @@
-import math
-import time
 import datetime
+import math
 import os
+import time
 
-import pygame
-import pickle
 import numpy as np
+import pickle
+import pygame
 
 from gymnasium_env.envs.System import initializations
 from gymnasium_env.envs.System.Control_Algorithms import control_algorithm
-
 from gymnasium_env.envs.System.Library import data_extractor
 from gymnasium_env.envs.System.Library import functions
 from gymnasium_env.envs.System.Library.pygame_recorder import ScreenRecorder
 
 
 class Simulator:
-    """Class for the simulator object which runs and updates the pygame canvas and hanldes inputs
-    """    
+    """Class for the simulator object which runs and updates the pygame canvas and hanldes inputs"""
 
     def __init__(self, framerate):
         """Initializes all the required class attributes such as particle location, particle velocity,
@@ -30,7 +28,9 @@ class Simulator:
         self.clock = None
 
         # Attribute to hold the pygame canvas
-        self.canvas = pygame.Surface([initializations.SIM_FRAME_WIDTH, initializations.SIM_FRAME_HEIGHT])
+        self.canvas = pygame.Surface(
+            [initializations.SIM_FRAME_WIDTH, initializations.SIM_FRAME_HEIGHT]
+        )
 
         # Attribute to hold the pygame canvas framerate
         self.framerate = framerate
@@ -53,7 +53,9 @@ class Simulator:
         self.txt_particle = ""
         self.txt_goal = ""
 
-        self.flag_setting_multiple_goals = False  # Flag to detect if multiple goals mode has been turned on
+        self.flag_setting_multiple_goals = (
+            False  # Flag to detect if multiple goals mode has been turned on
+        )
         self.flag_log = False  # Flag to detect if logging mode has been turned on
 
         self.flag_record = False  # Flag to detect if canvas is being recorded
@@ -66,11 +68,15 @@ class Simulator:
             [
                 int(
                     initializations.SIM_SOL_CIRCLE_RAD
-                    * math.cos((math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals))))
+                    * math.cos(
+                        (math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals)))
+                    )
                 ),
                 int(
                     initializations.SIM_SOL_CIRCLE_RAD
-                    * math.sin((math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals))))
+                    * math.sin(
+                        (math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals)))
+                    )
                 ),
             ]
             for x in range(len(self.coil_vals))
@@ -81,16 +87,26 @@ class Simulator:
             initializations.COIL_NAMES,
         )  # Stores the data extractor object in an attribute
 
-        self.date_time = str(datetime.datetime.now())  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
-        self.date_time = self.date_time.replace(":", ".")  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
-        self.date_time = self.date_time.replace(" ", "_")  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
-        self.date_time = self.date_time[:-7]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
+        self.date_time = str(
+            datetime.datetime.now()
+        )  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
+        self.date_time = self.date_time.replace(
+            ":", "."
+        )  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
+        self.date_time = self.date_time.replace(
+            " ", "_"
+        )  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
+        self.date_time = self.date_time[
+            :-7
+        ]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
 
         self.video_num = 1  # Number of video so that each video has a unique name
 
         # Loads the saved prediction model for predicting the motion of the particle in the simulator
         model_filename = "Predict_rdot_from_I_r_R2_0.916_No_0.0_to_0.15_shuffled"
-        with open(os.path.dirname(__file__) + "/Models/" + model_filename + ".pkl", "rb") as f:
+        with open(
+            os.path.dirname(__file__) + "/Models/" + model_filename + ".pkl", "rb"
+        ) as f:
             self.model = pickle.load(f)
 
     def renderInit(self):
@@ -126,10 +142,15 @@ class Simulator:
                 # An offset of 8 divisions is applied otherwise, at low
                 # currents the color is too dark.
                 color[i] = (
-                    (((coil_value * initializations.SIM_SOL_COLOR[i])
-                        // (initializations.SIM_SOL_COLOR[i] / initializations.SIM_COLOR_DIVS)) + 8)
-                         * (initializations.SIM_SOL_COLOR[i] / initializations.SIM_COLOR_DIVS)
-                )
+                    (
+                        (coil_value * initializations.SIM_SOL_COLOR[i])
+                        // (
+                            initializations.SIM_SOL_COLOR[i]
+                            / initializations.SIM_COLOR_DIVS
+                        )
+                    )
+                    + 8
+                ) * (initializations.SIM_SOL_COLOR[i] / initializations.SIM_COLOR_DIVS)
 
         pygame.draw.circle(canvas, color, (x, y), initializations.SIM_SOL_RAD)
 
@@ -140,7 +161,7 @@ class Simulator:
             canvas : pygame canvas object on which to draw
             coil_locs : List of size 8 containing locations of coils starting from Northern coil
             coil_vals : List of size 8 containing scaled currents starting from Northern coil
-        """        
+        """
         for i in range(len(self.coil_locs)):
             coil_loc_img = functions.absolute_to_image(
                 coil_locs[i][0],
@@ -159,7 +180,7 @@ class Simulator:
         Args:
             canvas : pygame canvas object on which to draw
             particle_loc :Location of the particle
-        """        
+        """
         particle_loc_img = functions.absolute_to_image(
             particle_loc[0],
             particle_loc[1],
@@ -180,7 +201,7 @@ class Simulator:
         Args:
             canvas : canvas object on which to draw
             goal_loc : Location of the goal
-        """        
+        """
         goal_loc_img = functions.absolute_to_image(
             goal_loc[0],
             goal_loc[1],
@@ -223,7 +244,7 @@ class Simulator:
             canvas : canvas object on which to draw
             particle_loc : Location of particle
             goal_loc : Location of goal
-        """        
+        """
         particle_loc_img = functions.absolute_to_image(
             particle_loc[0],
             particle_loc[1],
@@ -245,7 +266,14 @@ class Simulator:
             initializations.SIM_GOAL_VECTOR_THICKNESS,
         )
 
-    def drawText(self, canvas, particle_loc, goal_loc, flag_edit_particle_keyboard, flag_edit_goal_keyboard):
+    def drawText(
+        self,
+        canvas,
+        particle_loc,
+        goal_loc,
+        flag_edit_particle_keyboard,
+        flag_edit_goal_keyboard,
+    ):
         """Draws all text objects on canvas
 
         Args:
@@ -254,7 +282,7 @@ class Simulator:
             goal_loc : Location of the current goal
             flag_edit_particle_keyboard : Flag to detect if the user has clicked on the particle text to modify the position
             flag_edit_goal_keyboard : Flag to detect if the user has clicked on the goal text to modify the position
-        """        
+        """
         font = pygame.font.Font("freesansbold.ttf", initializations.SIM_TEXT_SIZE)
 
         # Draws the text "Particle Location: "
@@ -388,7 +416,13 @@ class Simulator:
             flag_edit_goal_keyboard : Flag to detect if the user has clicked on the goal text to modify the position
         """
         if render:
-            self.drawText(canvas, particle_loc, goal_locs[0], flag_edit_particle_keyboard, flag_edit_goal_keyboard)
+            self.drawText(
+                canvas,
+                particle_loc,
+                goal_locs[0],
+                flag_edit_particle_keyboard,
+                flag_edit_goal_keyboard,
+            )
         self.drawSolenoids(canvas, coil_locs, coil_vals)
         self.drawGoalVector(canvas, particle_loc, goal_locs[0])
 
@@ -412,7 +446,7 @@ class Simulator:
 
         Returns:
             float: Velocity towards the solenoid
-        """        
+        """
         r_dot = [0, 0]
 
         # If current is 0, the no calculation is done since velocity should be 0
@@ -429,7 +463,13 @@ class Simulator:
         return r_dot
 
     def updateParticleLocation(
-        self, particle_loc, particle_vel, flag_edit_particle_mouse, coil_vals, coil_locs, prev_time
+        self,
+        particle_loc,
+        particle_vel,
+        flag_edit_particle_mouse,
+        coil_vals,
+        coil_locs,
+        prev_time,
     ):
         """Updates the particle location
 
@@ -445,7 +485,7 @@ class Simulator:
             list: 1x2 list containing the new particle location
             list: 1x2 list containing the new particle velocity
             float: Time stamp of current frame
-        """        
+        """
         # Only updates location if particle is not being moved by the mouse
         if not flag_edit_particle_mouse:
             dt = time.time() - prev_time
@@ -523,7 +563,7 @@ class Simulator:
 
         Returns:
             list: Closest location from mouse in bounds
-        """     
+        """
         # Gets the sign of the x and y locations
         if mouse_pos[0] > 0:
             mult_x = 1
@@ -570,7 +610,7 @@ class Simulator:
 
         Returns:
             list: In-bounds location of mouse
-        """        
+        """
         pos = list(pygame.mouse.get_pos())
         pos = functions.image_to_absolute(
             pos[0],
@@ -595,7 +635,7 @@ class Simulator:
 
         Returns:
             bool: Determines if the game is still running
-        """        
+        """
         running = True
 
         # If the game has been quit, sets running as False and saves log data if data logging mode was active
@@ -618,9 +658,15 @@ class Simulator:
                     # If text for particle location was pressed, starts editing particle location
                     if (
                         (pos[0] > self.textRect_particle[0])
-                        and (pos[0] < (self.textRect_particle[0] + self.textRect_particle[2]))
+                        and (
+                            pos[0]
+                            < (self.textRect_particle[0] + self.textRect_particle[2])
+                        )
                         and (pos[1] > self.textRect_particle[1])
-                        and (pos[1] < (self.textRect_particle[1] + self.textRect_particle[3]))
+                        and (
+                            pos[1]
+                            < (self.textRect_particle[1] + self.textRect_particle[3])
+                        )
                     ):
                         self.flag_edit_particle_keyboard = True
 
@@ -792,7 +838,13 @@ class Simulator:
 
                     # If canvas was being recorded, stop recording canvas and save it
                     if self.flag_record:
-                        print("Video saved to: Data/Simulator_Data_" + self.date_time + "/Recording_" + str(self.video_num) + ".avi")
+                        print(
+                            "Video saved to: Data/Simulator_Data_"
+                            + self.date_time
+                            + "/Recording_"
+                            + str(self.video_num)
+                            + ".avi"
+                        )
                         self.recorder.end_recording()  # Finishes and saves the recording
 
                         self.video_num += 1
@@ -801,12 +853,18 @@ class Simulator:
                     else:
                         print("Starting")
 
-                        os.makedirs("Data/Simulator_Data_" + self.date_time, exist_ok=True)  # Creates the directory if it does not exist
+                        os.makedirs(
+                            "Data/Simulator_Data_" + self.date_time, exist_ok=True
+                        )  # Creates the directory if it does not exist
                         self.recorder = ScreenRecorder(
                             initializations.SIM_FRAME_WIDTH,
                             initializations.SIM_FRAME_HEIGHT,
                             60,
-                            "Data/Simulator_Data_" + self.date_time + "/Recording_" + str(self.video_num) + ".avi"
+                            "Data/Simulator_Data_"
+                            + self.date_time
+                            + "/Recording_"
+                            + str(self.video_num)
+                            + ".avi",
                         )  # Passes the desired fps and starts the recorder
 
                     self.flag_record = not self.flag_record
@@ -816,7 +874,9 @@ class Simulator:
 
                     try:
                         # Opens the Path Data.txt file which is placed in the same directory as this file
-                        with open(os.path.dirname(__file__) + "/Path Data.txt", "r") as f:
+                        with open(
+                            os.path.dirname(__file__) + "/Path Data.txt", "r"
+                        ) as f:
                             path_data = f.readlines()
                             temp = []
 
@@ -845,7 +905,7 @@ class Simulator:
 
                     except:
                         print(
-                            'Invalid format of path locations. The file must consists of each path point on separate line.' 
+                            "Invalid format of path locations. The file must consists of each path point on separate line."
                             'Each point must consist of two numbers separated by ",".'
                         )
 
@@ -863,7 +923,7 @@ class Simulator:
         Returns:
             bool: Determines whether program is still running
             float: Time stamp of previous frame in seconds
-        """        
+        """
         # Calculates d, distance from first goal, and removes the goal from the list if d is less than initializations.SIM_MULTIPLE_GOALS_ACCURACY
         d = functions.distance(
             self.particle_loc[0],
@@ -920,12 +980,14 @@ class Simulator:
         )
 
         if render:
-            #pygame.display.flip()
+            # pygame.display.flip()
             self.window.blit(self.canvas, self.canvas.get_rect())
             pygame.event.pump()
             pygame.display.update()
 
-            self.clock.tick(self.framerate)  # Sleeps in between loop so that fps is equal to self.framerate
+            self.clock.tick(
+                self.framerate
+            )  # Sleeps in between loop so that fps is equal to self.framerate
 
         if self.flag_record:
             self.recorder.capture_frame(self.canvas)
@@ -949,7 +1011,12 @@ class Simulator:
         return running, prev_time
 
     def getState(self):
-        return self.particle_loc.copy(), self.goal_locs[0].copy(), self.coil_vals.copy(), self.coil_locs.copy()
+        return (
+            self.particle_loc.copy(),
+            self.goal_locs[0].copy(),
+            self.coil_vals.copy(),
+            self.coil_locs.copy(),
+        )
 
     def resetAtRandomLocs(self, seed):
         """Resets the game by resetting all values and placing the partcile and goal at random locations.
@@ -1005,7 +1072,9 @@ class Simulator:
         self.txt_particle = ""
         self.txt_goal = ""
 
-        self.flag_setting_multiple_goals = False  # Flag to detect if multiple goals mode has been turned on
+        self.flag_setting_multiple_goals = (
+            False  # Flag to detect if multiple goals mode has been turned on
+        )
         self.flag_log = False  # Flag to detect if logging mode has been turned on
 
         self.flag_record = False  # Flag to detect if canvas is being recorded
@@ -1019,16 +1088,25 @@ class Simulator:
             initializations.COIL_NAMES,
         )  # Stores the data extractor object in an attribute
 
-        self.date_time = str(datetime.datetime.now())  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
-        self.date_time = self.date_time.replace(":", ".")  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
-        self.date_time = self.date_time.replace(" ", "_")  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
-        self.date_time = self.date_time[:-7]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
+        self.date_time = str(
+            datetime.datetime.now()
+        )  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
+        self.date_time = self.date_time.replace(
+            ":", "."
+        )  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
+        self.date_time = self.date_time.replace(
+            " ", "_"
+        )  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
+        self.date_time = self.date_time[
+            :-7
+        ]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
 
         self.video_num = 1  # Number of video so that each video has a unique name
 
     def close(self):
         pygame.display.quit()
         pygame.quit()
+
 
 if __name__ == "__main__":
     sim = Simulator(1)

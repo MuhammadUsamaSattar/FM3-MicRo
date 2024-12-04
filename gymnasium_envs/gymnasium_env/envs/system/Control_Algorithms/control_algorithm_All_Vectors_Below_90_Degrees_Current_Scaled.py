@@ -21,30 +21,38 @@ def get_coil_vals(particle_loc, goal_loc, coil_vals, coil_locs):
 
     for i in range(len(coil_vals)):
         coil_vals[i] = 0
-        alpha = calc_angle_between_angles(calc_angle_between_points(particle_loc, goal_loc), 
-                                          calc_angle_between_points(particle_loc, coil_locs[i]))
-        
+        alpha = calc_angle_between_angles(
+            calc_angle_between_points(particle_loc, goal_loc),
+            calc_angle_between_points(particle_loc, coil_locs[i]),
+        )
+
         delta_angles.append(alpha)
 
-        if alpha < math.pi/2:
+        if alpha < math.pi / 2:
             min_coil.append(i)
 
     for i in min_coil:
-        coil_vals[i] = functions.distance(
-            particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
-        ) * math.cos(delta_angles[i]) / (initializations.SIM_SOL_CIRCLE_RAD * 2)
+        coil_vals[i] = (
+            functions.distance(
+                particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+            )
+            * math.cos(delta_angles[i])
+            / (initializations.SIM_SOL_CIRCLE_RAD * 2)
+        )
 
     return coil_vals
+
 
 def calc_angle_between_points(point1, point2):
     angle = math.atan2(point2[1] - point1[1], point2[0] - point1[0])
 
     return angle
 
+
 def calc_angle_between_angles(angle1, angle2):
     angle = abs(angle1 - angle2)
 
     if angle > math.pi:
-        angle = 2*math.pi - angle
+        angle = 2 * math.pi - angle
 
     return angle

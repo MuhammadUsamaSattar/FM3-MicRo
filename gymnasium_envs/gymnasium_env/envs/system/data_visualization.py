@@ -4,11 +4,11 @@ import os
 import random
 
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import numpy as np
 import pickle
 import pysindy as ps
 import scipy.integrate
+from matplotlib import cm
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor

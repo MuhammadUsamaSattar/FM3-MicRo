@@ -1,18 +1,32 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-import torch
-from dotenv import load_dotenv
 import os
 import time
+
+import torch
+from dotenv import load_dotenv
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 class LLM:
 
-    def __init__(self, model_quant="fp16", device="cuda"):
-        """Initializes the model and sends it to correct device"""
+    def __init__(
+        self,
+        model_quant: str = "fp16",
+        device: str = "cuda",
+        verbose: bool = False,
+    ):
+        """Intializes the model and processor.
+
+        Args:
+            model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16".
+            device (str, optional): Device which runs the model. Only "cuda" is available. Defaults to "cuda".
+            verbose (bool, optional): Boolen to select verbose or non-verbose mode. Defaults to False.
+        """
+        # Load the paths from .env file
         load_dotenv()
         access_token = os.getenv("HUGGING_FACE_API_KEY")
         model_id = os.getenv("PATH_LLAMA")
 
+        # Initializes self.model and self.tokenizer parameters depending upon given model_quant
         if model_quant == "fp16":
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
@@ -51,15 +65,23 @@ class LLM:
             token=access_token,
         )
 
-    def get_reward(self, txt, tokens):
-        """Generates reward from the input image
+        self.verbose = verbose
+
+    def get_response(
+        self,
+        txt: str,
+        tokens: int,
+    ) -> str:
+        """Generates a response from the input image and text.
 
         Args:
-            txt : Prompt to pass to the model
+            txt (str): Prompt text
+            tokens (int): Number of token to generate
 
         Returns:
-            float: Reward value of the state
+            str: Output response
         """
+        # Autoregressively complete prompt and output T/s
         inputs = self.tokenizer(txt, return_tensors="pt").to("cuda")
 
         t = time.time()
@@ -77,11 +99,18 @@ class LLM:
             "\n",
         )
 
-        print(self.tokenizer.decode(output[0], skip_special_tokens=True))
+        output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+
+        if self.verbose == True:
+            print(output)
+
+        return output
 
 
 if __name__ == "__main__":
     llm = LLM(model_quant="fp16", device="cuda")
 
     while True:
-        llm.get_reward(input("\nEnter prompt: "), tokens=int(input("\nEnter tokens: ")))
+        llm.get_response(
+            input("\nEnter prompt: "), tokens=int(input("\nEnter tokens: "))
+        )

@@ -12,18 +12,20 @@ class data_extractor:
         Args:
             coil_loc : List of size 8 containing locations of coils where 0th element corresponds to Northern coil
             coil_names : List of size 8 containing names of coils where 0th element corresponds to Northern coil
-        """        
+        """
 
         self.coil_loc = coil_loc
         self.coil_names = coil_names
-        self.file_counter = 1  # Tracks the number of file to write to so that all filenames are unique
+        self.file_counter = (
+            1  # Tracks the number of file to write to so that all filenames are unique
+        )
 
     def startDataSet(self, mode):
         """Resets the recorded data with field names according to mode
 
         Args:
             mode : String that determines whether the mode is "solenoid_calibration" or "log_data"
-        """        
+        """
         self.mode = mode
 
         # Creates the data fields that are relevant to the mode type
@@ -46,8 +48,7 @@ class data_extractor:
         self.start_time = time.time()
 
     def startDataSeries(self):
-        """Resets the time which is useful when running multiple trials
-        """        
+        """Resets the time which is useful when running multiple trials"""
         self.start_time = time.time()
 
     def record_datapoint(self, particle_loc, coil_vals, goal_loc=None, coil_index=None):
@@ -58,7 +59,7 @@ class data_extractor:
             coil_vals : List of size 8 containing coil currents where 0th element corresponds to Northern coil
             goal_loc : List of size 2 containing x and y co-ordinates of goal. Not needed for "solenoid_calibration" mode.
             coil_index : Index of coil which is being calibrated. Not needed for "log_data" mode.
-        """        
+        """
         # Records the data that is relevant to the mode type
         if self.mode == "solenoid_calibration":
             t = time.time() - self.start_time
@@ -86,8 +87,8 @@ class data_extractor:
 
         Args:
             dir : Directory at which the file is to be saved
-        """     
-        # Sets filename according to the mode type   
+        """
+        # Sets filename according to the mode type
         if self.mode == "solenoid_calibration":
             filename = "Solenoid_Calibration_Data"
 
@@ -104,6 +105,8 @@ class data_extractor:
             csvsvwriter.writerow(self.fields)
             csvsvwriter.writerows(self.data)
 
-        print("Data saved: ", os.getcwd() + "/" + local_path_string)  # Prints complete path of the file to the terminal
+        print(
+            "Data saved: ", os.getcwd() + "/" + local_path_string
+        )  # Prints complete path of the file to the terminal
 
         self.file_counter += 1

@@ -1,3 +1,5 @@
+- **e11e757:** Changed vlm class to allow both url and image as array/PIL option
+- **77af1eb:** Setup vlm and llm classes along with optimizations to maximize token generation rate.
 - **d151eca:** Setup llm module, vlm module and dev-scripts
 - **ae0c056:** Renamed gymasium env package folder
 - **244774d:** Fourth attempt to fix GitHub pusher. Set the GitHub credentials for both GitHub and GitLab

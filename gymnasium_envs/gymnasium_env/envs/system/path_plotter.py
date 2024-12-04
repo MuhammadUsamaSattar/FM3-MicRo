@@ -1,5 +1,6 @@
 import csv
 import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -26,7 +27,7 @@ with open(os.path.dirname(__file__) + "/" + filename, mode="r") as file:
 
     i = 0
     for line in csvFile:
-        # The first line only contains the line headers so calculates the index of 
+        # The first line only contains the line headers so calculates the index of
         # the column at which goal location is present.
         # This allows user to input both solenoid calibration and log data files.
         if i == 0:

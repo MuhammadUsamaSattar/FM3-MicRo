@@ -61,7 +61,7 @@ def current_frac_to_formatted(curr, zero_val, output_range):
 
     Returns:
         float: Formatted current value
-    """    
+    """
     return (curr * output_range) + zero_val
 
 
@@ -76,7 +76,7 @@ def distance(x1, y1, x2, y2):
 
     Returns:
         float: Distance between points
-    """    
+    """
     return math.sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2))
 
 
@@ -88,7 +88,7 @@ def limit_coil_vals(coil_vals):
 
     Returns:
         list: List of size 8 containing scaled current values limited by initializations.MAX_FRAC_CURR where 0th element corresponds to Northern coil
-    """    
+    """
     for i in range(len(coil_vals)):
 
         if coil_vals[i] > 1:

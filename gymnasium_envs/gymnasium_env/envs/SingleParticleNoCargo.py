@@ -1,24 +1,40 @@
 import sys
 import time
 
-import numpy as np
 import gymnasium as gym
-from gymnasium import spaces
+import numpy as np
 import pygame
+from gymnasium import spaces
 
-from gymnasium_env.envs.System.Library import functions
-from gymnasium_env.envs.System.simulator import Simulator
-from gymnasium_env.envs.System import initializations
 from gymnasium_env.envs.Library.llm import LLM
 from gymnasium_env.envs.Library.vlm import VLM
+from gymnasium_env.envs.System import initializations
+from gymnasium_env.envs.System.Library import functions
+from gymnasium_env.envs.System.simulator import Simulator
 
 
 class SingleParticleNoCargo(gym.Env):
     """Custom Gymnasium Environment wrapping a Pygame-based Simulator."""
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
+    metadata = {
+        "render_modes": [None, "human", "rgb_array"],
+        "render_fps": 60,
+        "reward_types": ["default", "llm", "vlm"],
+    }
 
-    def __init__(self, render_mode=None, episode_time_limit=5, reward_type="default"):
+    def __init__(
+        self,
+        render_mode: str | None = None,
+        episode_time_limit: int = 5,
+        reward_type: str = "default",
+    ):
+        """Initializes the environment
+
+        Args:
+            render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to None.
+            episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
+            reward_type (str, optional): Type of reward function. "default", "llm" and "vlm" are available. "default" uses the euclidian distance between the particle and goal. Defaults to "default".
+        """
         # Initialize the simulator
         self.simulator = Simulator(self.metadata["render_fps"])
 
@@ -38,17 +54,23 @@ class SingleParticleNoCargo(gym.Env):
 
         self.running = True
 
-        assert render_mode == None or render_mode in self.metadata["render_modes"]
+        assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
         self.episode_time_limit = episode_time_limit
 
+        assert reward_type in self.metadata["reward_types"]
         self.reward_type = reward_type
 
-        print(reward_type) if reward_type else print("no")
+    def reset(self, seed: int | None = None) -> tuple[dict, dict]:
+        """Reset the environment to an initial state.
 
-    def reset(self, seed=None, options=None):
-        """Reset the environment to an initial state."""
+        Args:
+            seed (int | None, optional): Seed value to pass to self.np_random. Defaults to None.
+
+        Returns:
+            tuple[dict, dict]: A tuple of observations dict and info dict.
+        """
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
@@ -61,8 +83,15 @@ class SingleParticleNoCargo(gym.Env):
 
         return obs, info
 
-    def step(self, action):
-        """Apply action and return the new observation, reward, done, and info."""
+    def step(self, action: list[float]) -> tuple[dict, float, bool, bool, dict]:
+        """Apply action, process the new state and return state data.
+
+        Args:
+            action (list[float]): A list of length 8 with normalized current values for solenoids starting from Northern-most and then in clockwise direction.
+
+        Returns:
+            tuple[dict, float, bool, bool, dict]: Tuple containing the new observation, reward, done (epsiode completed), truncated (episode terminated) and info
+        """
         render = str(self.render_mode) == "human"
 
         # Run one frame of the simulator
@@ -92,7 +121,7 @@ class SingleParticleNoCargo(gym.Env):
         return obs, reward, done, truncated, info
 
     def render(self):
-        """Render the environment."""
+        """Render the environment. Only handles "rgb_array" option. "human" option is handled through pygame."""
         # Returns an rgb array of the image for stable-baselines to be able render it on OpenCV when showing results of training
         if self.render_mode == "rgb_array":
             return np.transpose(
@@ -101,11 +130,16 @@ class SingleParticleNoCargo(gym.Env):
             )
 
     def _close(self):
-        """Close the environment and simulator."""
+        """Close the environment and simulator. Only called when pygame window is closed by the user"""
         self.simulator.close()
         sys.exit()
 
-    def _get_obs(self):
+    def _get_obs(self) -> dict:
+        """Returns the observations of the current game state
+
+        Returns:
+            dict: Observation dictionary containing the particle location and goal location.
+        """
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
         return {
@@ -114,13 +148,19 @@ class SingleParticleNoCargo(gym.Env):
         }
 
     def _reward_gen_init_(self):
+        """Initialzies the foundation model for reward generation"""
         if self.reward_type == "llm":
             self.reward_gen = LLM()
 
         elif self.reward_type == "vlm":
             self.reward_gen = VLM()
 
-    def _get_info(self):
+    def _get_info(self) -> dict:
+        """Returns the info of the current state.
+
+        Returns:
+            dict: Dictionary containing the reward
+        """
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
         if self.reward_type == "default":
@@ -131,7 +171,7 @@ class SingleParticleNoCargo(gym.Env):
             }
 
         elif self.reward_type == "llm":
-            return {"reward": self.reward_gen.get_reward("TO BE DONE")}
+            return {"reward": self.reward_gen.get_response("TO BE DONE")}
 
         elif self.reward_type == "vlm":
-            return {"reward": self.reward_gen.get_reward("TO BE DONE")}
+            return {"reward": self.reward_gen.get_response("TO BE DONE")}

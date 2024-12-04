@@ -43,7 +43,7 @@ def Cam_PySpin_Connect(cam):
 
     Returns:
         bool: Determines if connection was successful
-    """    
+    """
     nodemap_tldevice = cam.GetTLDeviceNodeMap()
 
     # Initialize camera
@@ -128,10 +128,10 @@ def Cam_PySpin_GetImg(cam):
     """Retrieve next received image
 
     *** NOTES ***
-    
+
     Capturing an image houses images on the camera buffer. Trying
     to capture an image that does not exist will hang the camera.
-    
+
     Once an image from the buffer is saved and/or no longer
     needed, the image must be released in order to keep the
     buffer from filling up.
@@ -141,7 +141,7 @@ def Cam_PySpin_GetImg(cam):
 
     Returns:
         numpy array: Image data
-    """    
+    """
 
     image_result = cam.GetNextImage(200)  # originally 1000
 
@@ -169,14 +169,14 @@ def Cam_PySpin_GetImg(cam):
 
 def Cam_PySpin_Stop(cam):
     """End acquisition
-    
+
     *** NOTES ***
     Ending acquisition appropriately helps ensure that devices clean up
     properly and do not need to be power-cycled to maintain integrity.
 
     Args:
         cam : PySpin camera object
-    """    
+    """
     cam.EndAcquisition()
 
     # Deinitialize camera
@@ -195,7 +195,7 @@ def Cam_PySpin_Close(cam_list, system):
     Args:
         cam_list : List containing PySpin camera objects
         system : System object
-    """    
+    """
     # Clear camera list before releasing system
     cam_list.Clear()
 

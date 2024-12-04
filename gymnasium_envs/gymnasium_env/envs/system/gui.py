@@ -20,54 +20,64 @@ There are two Arduino Mega microcontrollers that are responsible for controlling
                
 """
 
-
-import sys
-import time
-import os
 import datetime
 import math
+import os
+import sys
+import time
 
 import cv2
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from gymnasium_env.envs.System.Interface.Ui_interface import *
-
-from gymnasium_env.envs.System.Control_Algorithms.control_algorithm import control_algorithm
 from gymnasium_env.envs.System import initializations
-
 from gymnasium_env.envs.System.Library import blob_detection as Blob_detect
 from gymnasium_env.envs.System.Library import data_extractor
 from gymnasium_env.envs.System.Library import functions
 from gymnasium_env.envs.System.Library import pyspin_wrapper as PySpin_lib
+from gymnasium_env.envs.System.Control_Algorithms.control_algorithm import (
+    control_algorithm,
+)
+from gymnasium_env.envs.System.Interface.Ui_interface import *
 
 
 class mywindow(QMainWindow, Ui_MainWindow):
-    """QT window class based upon designed interface in QT Designer. 
+    """QT window class based upon designed interface in QT Designer.
     Control and Camera function are also built within this class.
-    """    
+    """
 
     def __init__(self):
-        """Initializes the class attributes such as particle location, goal locations and various flags.
-        """        
+        """Initializes the class attributes such as particle location, goal locations and various flags."""
         super(mywindow, self).__init__()
         self.setupUi(self)
 
         # Flags are used to record the state of the buttons on the user interface.
         # True means the button is toggled on. False means toggled off.
         self.flag_video_on = False  # Flag to determine if the video display is on
-        self.flag_detecting_objects = False  # Flag to determine if object detection is on
+        self.flag_detecting_objects = (
+            False  # Flag to determine if object detection is on
+        )
         self.flag_record = False  # Flag to determine if the video recording is on
         self.flag_grid_on = False  # Flag to determine if the grid display is on
-        self.flag_show_target_position = False  # Flag to determine if the goal display is on
+        self.flag_show_target_position = (
+            False  # Flag to determine if the goal display is on
+        )
         self.flag_show_goal_vector = False  # Flag to determine if display of the vector from particle to goal is on
-        self.flag_automatic_control = False  # Flag to determine if automatic control is on
-        self.flag_show_solenoid_state = True  # Flag to determine if solenoid location and state display is on
+        self.flag_automatic_control = (
+            False  # Flag to determine if automatic control is on
+        )
+        self.flag_show_solenoid_state = (
+            True  # Flag to determine if solenoid location and state display is on
+        )
         self.flag_snapshot = False  # Flag to determine if a snapshot has to be taken
-        self.flag_gen_sol_data = False  # Flag to determine if solenoid calibration is on
+        self.flag_gen_sol_data = (
+            False  # Flag to determine if solenoid calibration is on
+        )
         self.flag_gen_log_data = False  # Flag to determine if data logging is on
-        self.flag_setting_multiple_goals = False  # Flag to determine if multiple goals are being set
+        self.flag_setting_multiple_goals = (
+            False  # Flag to determine if multiple goals are being set
+        )
 
         # Detected location of the particle. Starts at top-right of the screen
         self.particle_locs = [
@@ -80,19 +90,21 @@ class mywindow(QMainWindow, Ui_MainWindow):
         self.blob_lost = False  # Determines if the blob has been lost
 
         # List of size 8 containing scaled current values. Oth element is the Northern coil
-        self.coil_vals = [
-            0.0 for _ in initializations.COIL_NAMES
-        ]  
+        self.coil_vals = [0.0 for _ in initializations.COIL_NAMES]
 
         self.coil_locs = [
             [
                 int(
                     initializations.GUI_SOL_CIRCLE_RAD
-                    * math.cos((math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals))))
+                    * math.cos(
+                        (math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals)))
+                    )
                 ),
                 int(
                     initializations.GUI_SOL_CIRCLE_RAD
-                    * math.sin((math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals))))
+                    * math.sin(
+                        (math.pi / 2) - (x * (2 * math.pi / len(self.coil_vals)))
+                    )
                 ),
             ]
             for x in range(len(self.coil_vals))
@@ -100,9 +112,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         self.grid_dim = 10  # Number of grid lines on each side of the center line
 
-        self.goal_locs = [
-            list(map(int, [0, 0]))
-        ]  # List containing locations of goals
+        self.goal_locs = [list(map(int, [0, 0]))]  # List containing locations of goals
 
         # Create a VideoCapture object
         self.cap = cv2.VideoCapture(0)
@@ -131,30 +141,41 @@ class mywindow(QMainWindow, Ui_MainWindow):
             int: Number to append at end of video name
             str: Name without number plus directory for snapshot
             int: Number to append at end of snapshot name
-        """        
+        """
         # The date and time that the program was started at is used to create folder names to store videos and snapshots
-        date_time = str(datetime.datetime.now())  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
-        date_time = date_time.replace(":", ".")  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
-        date_time = date_time.replace(" ", "_")  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
-        date_time = date_time[:-7]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
+        date_time = str(
+            datetime.datetime.now()
+        )  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
+        date_time = date_time.replace(
+            ":", "."
+        )  # Replace the colons --> YYYY-MM-DD HH.MM.SS.SSSSSS
+        date_time = date_time.replace(
+            " ", "_"
+        )  # Replace the space --> YYYY-MM-DD_HH.MM.SS.SSSSSS
+        date_time = date_time[
+            :-7
+        ]  # Remove the fractions of the second --> YYYY-MM-DD_HH.MM.SS
 
         # Creates the folder name
-        path = (
-            "Data/Experiment_Data_" + date_time
-        )  
+        path = "Data/Experiment_Data_" + date_time
 
         video_num = 1  # Number to append at end of video name
-        video_name_root = path + "/Recording_"  # Name without number plus directory for video
-        video_name = video_name_root + str(video_num) + ".avi" # Name with number plus directory for video
+        video_name_root = (
+            path + "/Recording_"
+        )  # Name without number plus directory for video
+        video_name = (
+            video_name_root + str(video_num) + ".avi"
+        )  # Name with number plus directory for video
 
         snapshot_num = 1  # Number to append at end of snapshot name
-        snapshot_name_root = path + "/Snapshot_"  # Name without number plus directory for snapshot
+        snapshot_name_root = (
+            path + "/Snapshot_"
+        )  # Name without number plus directory for snapshot
 
         return path, video_name_root, video_num, snapshot_name_root, snapshot_num
 
     def toggleVideoDisplay(self):
-        """Toggles video display
-        """
+        """Toggles video display"""
         # If video was on, turns it off and stops the PySpin cam so
         # that on turning it on again, a new cam object can be created
         # without crashing
@@ -184,8 +205,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.run()
 
     def toggleGridDisplay(self):
-        """Toggles grid display
-        """ 
+        """Toggles grid display"""
         # If grid display was on, turns it off
         if self.flag_grid_on:
             self.flag_grid_on = False
@@ -201,8 +221,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.pushButton_5.setText("Grid: ON")
 
     def toggleVideoRecording(self):
-        """Toggles video recording
-        """        
+        """Toggles video recording"""
         # If recording was on, turns it off and saves the recorded frames as an .avi file.
         # Then increments the video number by 1 so that the next video has a unique name.
         if self.flag_record:
@@ -241,8 +260,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.pushButton_3.setText("Recording: ON")
 
     def takeSnapshot(self):
-        """Turns flag for taking snapshot on
-        """      
+        """Turns flag for taking snapshot on"""
         # If flag for taking snapshot was off, turns it on
         if self.flag_snapshot == False:
             self.flag_snapshot = True
@@ -250,8 +268,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             print("Taking snapshot")
 
     def toggleObjectDetection(self):
-        """Toggles object detection
-        """        
+        """Toggles object detection"""
         # If object detection was on, turns it off
         if self.flag_detecting_objects:
             self.flag_detecting_objects = False
@@ -272,8 +289,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             )
 
     def toggleSolenoidDisplay(self):
-        """Toggles solenoid location and state display
-        """
+        """Toggles solenoid location and state display"""
         # If solenoid display was on, turns it off
         if self.flag_show_solenoid_state:
             self.flag_show_solenoid_state = False
@@ -289,8 +305,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.pushButton_4.setText("Show Solenoid State: ON")
 
     def toggleGoalsDisplay(self):
-        """Toggles goal(s) loction display
-        """     
+        """Toggles goal(s) loction display"""
         # If goal display was on, turns it off
         if self.flag_show_target_position:
             self.flag_show_target_position = False
@@ -306,8 +321,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.pushButton_7.setText("Show Goal: ON")
 
     def toggleGoalVectorDisplay(self):
-        """Toggles display of vector from particle to current goal
-        """ 
+        """Toggles display of vector from particle to current goal"""
         # If goal vector was on, turns it off
         if self.flag_show_goal_vector:
             self.flag_show_goal_vector = False
@@ -327,7 +341,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         Args:
             coil_vals : List of size 8 containing scaled coil currents
-        """        
+        """
         vals = []
         for val in coil_vals:
             vals.append(
@@ -366,7 +380,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         Args:
             coil_vals : List of size 8 containing scaled coil currents
-        """              
+        """
         vals = []
         for val in coil_vals:
             vals.append(
@@ -406,7 +420,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             value : Current value in percentage
             coil_index : Index of coil to send current to
             coil_vals : List of size 8 containing scaled coil currents
-        """        
+        """
         coil_vals[coil_index] = value / initializations.GUI_INPUT_RANGE
 
         # Determines which set of coils (cartesian or diagonal) this coil being changed belongs to.
@@ -420,48 +434,39 @@ class mywindow(QMainWindow, Ui_MainWindow):
         time.sleep(initializations.GUI_SLEEP_INT)
 
     def manualNorth(self):
-        """Receives input from spinbox of North coil and sends current values to the same coil
-        """        
+        """Receives input from spinbox of North coil and sends current values to the same coil"""
         self.manual(self.spinBox_N.value(), 0, self.coil_vals)
 
     def manualNorthEast(self):
-        """Receives input from spinbox of NorthEast coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of NorthEast coil and sends current values to the same coil"""
         self.manual(self.spinBox_NE.value(), 1, self.coil_vals)
 
     def manualEast(self):
-        """Receives input from spinbox of East coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of East coil and sends current values to the same coil"""
         self.manual(self.spinBox_E.value(), 2, self.coil_vals)
 
     def manualSouthEast(self):
-        """Receives input from spinbox of SouthEast coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of SouthEast coil and sends current values to the same coil"""
         self.manual(self.spinBox_SE.value(), 3, self.coil_vals)
 
     def manualSouth(self):
-        """Receives input from spinbox of South coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of South coil and sends current values to the same coil"""
         self.manual(self.spinBox_S.value(), 4, self.coil_vals)
 
     def manualSouthWest(self):
-        """Receives input from spinbox of SouthWest coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of SouthWest coil and sends current values to the same coil"""
         self.manual(self.spinBox_SW.value(), 5, self.coil_vals)
 
     def manualWest(self):
-        """Receives input from spinbox of West coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of West coil and sends current values to the same coil"""
         self.manual(self.spinBox_W.value(), 6, self.coil_vals)
 
     def manualNorthWest(self):
-        """Receives input from spinbox of NorthWest coil and sends current values to the same coil
-        """  
+        """Receives input from spinbox of NorthWest coil and sends current values to the same coil"""
         self.manual(self.spinBox_NW.value(), 7, self.coil_vals)
 
     def resetVals(self):
-        """Resets all coil and spinbox values to zero
-        """        
+        """Resets all coil and spinbox values to zero"""
         self.spinBox_N.setValue(0)
         self.spinBox_NE.setValue(0)
         self.spinBox_E.setValue(0)
@@ -475,8 +480,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.manual(0, i, self.coil_vals)
 
     def automaticControl(self):
-        """Toggles automatic control
-        """
+        """Toggles automatic control"""
         # If automatic control was on, turns it off
         if self.flag_automatic_control:
             self.flag_automatic_control = False
@@ -503,19 +507,20 @@ class mywindow(QMainWindow, Ui_MainWindow):
                 self.toggleObjectDetection()
 
     def toggleSettingMultipleGoals(self):
-        """Toggles multiple goals mode
-        """     
+        """Toggles multiple goals mode"""
         # If multiple gaols mode was on, turns it off
         if self.flag_setting_multiple_goals:
             if len(self.goal_locs) > 1:
                 print("Executing Multiple Goals Motion")
                 self.pushButton_14.setText("Cancel Motion")
 
-                self.goal_locs.pop(0) # Removes the first goal from the list since it was the goal prior to multiple goals
+                self.goal_locs.pop(
+                    0
+                )  # Removes the first goal from the list since it was the goal prior to multiple goals
 
                 # Duplicates the last goal because "Executing Multiple Goals Motion" is
                 # only displayed as long length of self.goal_locs is greater than 1
-                self.goal_locs.append(self.goal_locs[-1])  
+                self.goal_locs.append(self.goal_locs[-1])
 
             else:
                 print("Multiple Goals Mode: OFF")
@@ -547,8 +552,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
                 self.goal_locs = [self.goal_locs[0]]
 
     def addGoal(self):
-        """Add/Replace the entered goal to self.goal_locs list
-        """        
+        """Add/Replace the entered goal to self.goal_locs list"""
         val = list(
             map(int, [self.doubleSpinBox_X.value(), self.doubleSpinBox_Y.value()])
         )
@@ -620,13 +624,12 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         except:
             print(
-                'Invalid format of path locations. The file must consists of each path point on separate line.' 
+                "Invalid format of path locations. The file must consists of each path point on separate line."
                 'Each point must consist of two numbers separated by ",".'
             )
 
     def toggleGenLogData(self):
-        """Toggles data logging mode
-        """        
+        """Toggles data logging mode"""
         self.flag_gen_sol_data = False
 
         # If data logging was on, turns it off and save the data in a .csv file
@@ -650,8 +653,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         self.flag_gen_log_data = not self.flag_gen_log_data
 
     def toggleGenSolData(self):
-        """Toggles solenoid data calibration mode
-        """        
+        """Toggles solenoid data calibration mode"""
         self.flag_automatic_control = False
 
         # If solenoid calbiration mode was active, deactivates it and saves the recorded data to a .csv file
@@ -669,11 +671,11 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.pushButton_12.setText("Generating Solenoid Data...")
 
             # Number of current values to calibrate on. Values are equally spaced and start from the first non-zero value.
-            current_vals = 20  
+            current_vals = 20
 
             # Number of sessions. Each session consists of going through each current value once.
             # Starting location of each session is also different if the two values in r_bounds are different
-            sessions = 12  
+            sessions = 12
 
             # Starting radial distance of the first and last session from the solenoid.
             # Intermediate sessions interpolate between these two bounds.
@@ -688,7 +690,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             # solenoids are calibrated with "sessions" number of sessions each
             # Note that solenoids have non insignificant variation and therefore the response is
             # very spread out which is why I only calibrate using one solenoid
-            coils_to_calibrate = [4]  
+            coils_to_calibrate = [4]
 
             self.toggleObjectDetection = True
 
@@ -736,7 +738,9 @@ class mywindow(QMainWindow, Ui_MainWindow):
                         self.data_extractor.startDataSeries()
 
                         data_time = time.time()
-                        self.manual(k * (100 / current_vals), i, self.coil_vals)  # Sends the current value to the solenoid
+                        self.manual(
+                            k * (100 / current_vals), i, self.coil_vals
+                        )  # Sends the current value to the solenoid
 
                         print("Current Value#", k, ": ", self.coil_vals)
 
@@ -761,7 +765,9 @@ class mywindow(QMainWindow, Ui_MainWindow):
                                 self.resetVals()
                                 sys.exit(app.exec_())
 
-                    self.demagnetizeSolenoid(i)  # Demagnetize solenoid afterwards to remove residual magnetism
+                    self.demagnetizeSolenoid(
+                        i
+                    )  # Demagnetize solenoid afterwards to remove residual magnetism
 
             self.goal_locs = [list(map(int, [0, 0]))]
             self.data_extractor.save_data(self.path)
@@ -772,7 +778,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         Args:
             index : Index of coil to demagnetize
-        """        
+        """
         steps = 8  # Number of steps of decreasing current to take for demagnetization
 
         for j in range(steps):
@@ -804,7 +810,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             coil_value : Scaled coil current
             x : x location of solenoid
             y : y location of solenoid
-        """        
+        """
         color = [0, 0, 0]
         for i in range(len(initializations.GUI_SOL_COLOR)):
             if initializations.GUI_SOL_COLOR[i] != 0:
@@ -824,8 +830,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         cv2.circle(frame, (x, y), initializations.GUI_SOL_RAD, color, -1)
 
     def demagnetizeAllSolenoids(self):
-        """Demagnetizes all solenoids
-        """
+        """Demagnetizes all solenoids"""
         # Turns off automatic control before demagnetization
         if self.flag_automatic_control:
             self.automaticControl()
@@ -844,7 +849,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         Args:
             frame : Frame on which to draw
-        """        
+        """
         frame = QImage(
             frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888
         )  # Converts the captured camera image to RGB888 format
@@ -859,7 +864,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         Args:
             frame : Frame object on which to draw
             frame_size : Size of camera frame
-        """        
+        """
         if self.flag_grid_on:
             # Draws the main axes
             cv2.line(
@@ -926,7 +931,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         Returns:
             numpy array: The frame with all required processings applied to detect the object
-        """        
+        """
         # Subtracts the background to obtain foreground object.
         #
         # Learning rate of 0.0001 allows the object to forget foreground object by reinitialziing
@@ -937,25 +942,25 @@ class mywindow(QMainWindow, Ui_MainWindow):
         #
         # Or you can set learningRate to 0. At this value, the object doesnt get lost but
         # occasionally, some large objects might be tracked instead and those won't be frogotten
-        #cv2.imshow("Initial Frame", frame)
-        ret, detection_frame = cv2.threshold(frame,75,255,cv2.THRESH_BINARY)
-        #cv2.imshow("Thresholded Frame", detection_frame)
+        # cv2.imshow("Initial Frame", frame)
+        ret, detection_frame = cv2.threshold(frame, 75, 255, cv2.THRESH_BINARY)
+        # cv2.imshow("Thresholded Frame", detection_frame)
 
-        detection_frame = self.background_subtractor.apply(detection_frame, learningRate=0.0000)
-        #cv2.imshow("Subtracted Frame", detection_frame)
+        detection_frame = self.background_subtractor.apply(
+            detection_frame, learningRate=0.0000
+        )
+        # cv2.imshow("Subtracted Frame", detection_frame)
 
         # Blurs the frame to convert the sharp shape of the blob to a more circular one.
         # Other blur types were tried such as Gaussian blur, but those did not give as good
         # performance as Median Blur.
-        detection_frame = cv2.medianBlur(
-           detection_frame, 5
-        )
-        #cv2.imshow("Blurred Frame", detection_frame)
+        detection_frame = cv2.medianBlur(detection_frame, 5)
+        # cv2.imshow("Blurred Frame", detection_frame)
 
         # Inverts the color of the frame since background subtractor sets foreground object as white
         # and background as black. OpenCV blob detector only detects blobs of color black.
         detection_frame = cv2.bitwise_not(detection_frame)
-        #cv2.imshow("Inverted Frame", detection_frame)
+        # cv2.imshow("Inverted Frame", detection_frame)
 
         particle_locs_img = []
         for particle_loc in self.particle_locs:
@@ -1019,7 +1024,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             frame : Frame object on which to draw
             coil_locs : List of size 8 containing locations of coils
             coil_vals : List of size 8 containing scaled coil currents
-        """     
+        """
         # If flag to show solenoid state is on, iterates over all coils and draws them
         if self.flag_show_solenoid_state:
             for i in range(len(self.coil_locs)):
@@ -1040,7 +1045,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
         Args:
             frame : Frame object on which to draw
             goal_locs : Locations of goals
-        """        
+        """
         if self.flag_show_target_position:
             for i in range(len(goal_locs)):
                 # Draw first goal only if user is not setting multiple goals right now.
@@ -1114,7 +1119,9 @@ class mywindow(QMainWindow, Ui_MainWindow):
                 initializations.GUI_GOAL_VECTOR_THICKNESS,
             )
 
-    def drawElements(self, frame, particle_locs, goal_locs, coil_locs, coil_vals, frame_size):
+    def drawElements(
+        self, frame, particle_locs, goal_locs, coil_locs, coil_vals, frame_size
+    ):
         """Draws all screen elements
 
         Args:
@@ -1124,7 +1131,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             coil_locs : List of size 8 containing locations of coils
             coil_vals : List of size 8 containing scaled coil currents
             frame_size : Size of the camera frame
-        """        
+        """
         self.drawGrids(frame, frame_size)
         self.drawGoalVector(frame, particle_locs[0], goal_locs)
         self.drawGoal(frame, goal_locs)
@@ -1132,9 +1139,10 @@ class mywindow(QMainWindow, Ui_MainWindow):
         self.drawSolenoids(frame, coil_locs, coil_vals)
 
     def process_frame(self):
-        """Displays video and associated screen elements
-        """        
-        time_stamp = time.time()  # Time stamp to measure how much time each block of code takes
+        """Displays video and associated screen elements"""
+        time_stamp = (
+            time.time()
+        )  # Time stamp to measure how much time each block of code takes
         frame = PySpin_lib.Cam_PySpin_GetImg(
             self.cam
         )  # Gets the frame using PySpin. Note: Original video size is 1920 x 1200.
@@ -1148,7 +1156,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
         frame = frame[
             h_crop : len(frame) - h_crop, w_crop : len(frame[0]) - w_crop
-        ]  # Crops the camera feed 
+        ]  # Crops the camera feed
         frame = cv2.rotate(
             frame, cv2.ROTATE_90_CLOCKWISE
         )  # Rotates the camera feed so that Northern coil is on top of screen
@@ -1246,10 +1254,13 @@ class mywindow(QMainWindow, Ui_MainWindow):
             )
 
     def run_frame(self):
-        """Runs one video frame and calculates the control values
-        """        
-        time_stamp = time.time()  # Time stamp to measure how much time each block of code takes
-        time_stamp_total = time_stamp  # Time stamp to measure how much total time each the frame takes
+        """Runs one video frame and calculates the control values"""
+        time_stamp = (
+            time.time()
+        )  # Time stamp to measure how much time each block of code takes
+        time_stamp_total = (
+            time_stamp  # Time stamp to measure how much total time each the frame takes
+        )
 
         self.process_frame()
 
@@ -1322,8 +1333,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             )
 
     def run(self):
-        """Keeps running frames until video is turned off or the window is closed
-        """        
+        """Keeps running frames until video is turned off or the window is closed"""
         while self.flag_video_on:
             self.run_frame()
 
@@ -1341,6 +1351,6 @@ if __name__ == "__main__":
     # If program crashes due to an error, this line resets all solenoids to zero.
     # But it causes the solenoid to be unaccessible for about 10 - 30 when program is started.
     # Need more investigation as to why this is so and more importantly how to solve this.
-    #mywin.resetVals()
+    # mywin.resetVals()
 
     sys.exit(app.exec_())  # Ensures we get a clean exit when QApplication exists

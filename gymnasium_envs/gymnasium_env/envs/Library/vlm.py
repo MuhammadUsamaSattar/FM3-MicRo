@@ -1,24 +1,39 @@
-from transformers import (
-    LlavaNextProcessor,
-    LlavaNextForConditionalGeneration,
-    BitsAndBytesConfig,
-)
-import torch
-from PIL import Image
+import os
 import requests
 import time
-from pathlib import Path
+from typing import List
+
+import torch
 from dotenv import load_dotenv
-import os
+from pathlib import Path
+from PIL import Image
+from transformers import (
+    BitsAndBytesConfig,
+    LlavaNextForConditionalGeneration,
+    LlavaNextProcessor,
+)
 
 
 class VLM:
 
-    def __init__(self, model_quant="fp16", device="cuda"):
-        """Initializes the model and sends it to correct device"""
+    def __init__(
+        self,
+        model_quant: str = "fp16",
+        device: str = "cuda",
+        verbose: bool = False,
+    ):
+        """Intializes the model and processor.
+
+        Args:
+            model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16".
+            device (str, optional): Device which runs the model. Only "cuda" is available. Defaults to "cuda".
+            verbose (bool, optional): Boolen to select verbose or non-verbose mode. Defaults to False.
+        """
+        # Load the path from .env file
         load_dotenv()
         model_id = os.getenv("PATH_LLAVA")
 
+        # Initializes self.model and self.processor parameters depending upon given model_quant
         if model_quant == "fp16":
             self.model = LlavaNextForConditionalGeneration.from_pretrained(
                 model_id,
@@ -52,22 +67,33 @@ class VLM:
 
         self.processor = LlavaNextProcessor.from_pretrained(model_id)
 
+        # Add path_size and vision_feature_select_strategy parameter values due to a warning by transformers. This still does not fix the warning. TBD.
         self.processor.patch_size = self.model.config.vision_config.patch_size
         self.processor.vision_feature_select_strategy = (
             self.model.config.vision_feature_select_strategy
         )
 
-    def get_reward(self, img, img_parameter_type, txt, tokens):
-        """Generates reward from the input image
+        self.verbose = verbose
+
+    def get_response(
+        self,
+        img: List,
+        img_parameter_type: str,
+        txt: str,
+        tokens: int,
+    ) -> str:
+        """Generates a response from the input image and text.
 
         Args:
-            img : An image that represents the current state
-            txt : Prompt to pass to the model
+            img (List): Prompt image
+            img_parameter_type (str): Type of image parameter. "url" and "image" are possible.
+            txt (str): Prompt text
+            tokens (int): Number of token to generate
 
         Returns:
-            float: Reward value of the state
+            str: Output response
         """
-        # prepare image and text prompt, using the appropriate prompt template
+        # Prepare image and text prompt, using the appropriate prompt template
         if img_parameter_type == "url":
             url = img
             image = Image.open(requests.get(url, stream=True).raw)
@@ -93,11 +119,8 @@ class VLM:
         inputs = self.processor(images=image, text=prompt, return_tensors="pt").to(
             "cuda"
         )
-        # inputs = self.processor(images=img, text=prompt, return_tensors="pt").to(
-        #    "cuda:0"
-        # )
 
-        # autoregressively complete prompt
+        # Autoregressively complete prompt and output T/s
         t = time.time()
 
         output = self.model.generate(
@@ -114,14 +137,19 @@ class VLM:
             "\n",
         )
 
-        print(self.processor.decode(output[0], skip_special_tokens=True))
+        output = self.processor.decode(output[0], skip_special_tokens=True)
+
+        if self.verbose == True:
+            print(output)
+
+        return output
 
 
 if __name__ == "__main__":
     vlm = VLM(model_quant="fp16", device="cuda")
 
     while True:
-        vlm.get_reward(
+        vlm.get_response(
             img=input("\nEnter URL: "),
             img_parameter_type="url",
             txt=input("\nEnter prompt: "),

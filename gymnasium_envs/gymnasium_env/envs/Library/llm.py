@@ -69,12 +69,14 @@ class LLM:
 
     def get_response(
         self,
+        context: str,
         txt: str,
         tokens: int,
     ) -> str:
         """Generates a response from the input image and text.
 
         Args:
+            context (str): Context for the system
             txt (str): Prompt text
             tokens (int): Number of token to generate
 
@@ -85,7 +87,7 @@ class LLM:
         conversation = [
             {
                 "role": "system",
-                "content": "You are a pirate",
+                "content": context,
             },
             {
                 "role": "user",
@@ -96,9 +98,7 @@ class LLM:
         prompt = self.tokenizer.apply_chat_template(
             conversation, add_generation_prompt=True, tokenize=False
         )
-        inputs = self.tokenizer(text=prompt, return_tensors="pt").to(
-            "cuda"
-        )
+        inputs = self.tokenizer(text=prompt, return_tensors="pt").to("cuda")
 
         # inputs = self.tokenizer(txt, return_tensors="pt").to("cuda")
 
@@ -117,7 +117,9 @@ class LLM:
             "\n",
         )
 
-        output = self.tokenizer.decode(output[0, inputs['input_ids'].shape[1]:], skip_special_tokens=True)
+        output = self.tokenizer.decode(
+            output[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True
+        )
 
         if self.verbose == True:
             print(output)
@@ -131,5 +133,7 @@ if __name__ == "__main__":
 
     while True:
         llm.get_response(
-            input("\nEnter prompt: "), tokens=int(input("\nEnter tokens: "))
+            input("\nEnter context: "),
+            input("\nEnter prompt: "),
+            tokens=int(input("\nEnter tokens: ")),
         )

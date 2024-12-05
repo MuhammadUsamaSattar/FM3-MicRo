@@ -62,11 +62,12 @@ class SingleParticleNoCargo(gym.Env):
         assert reward_type in self.metadata["reward_types"]
         self.reward_type = reward_type
 
-    def reset(self, seed: int | None = None) -> tuple[dict, dict]:
+    def reset(self, seed: int | None = None, options = None) -> tuple[dict, dict]:
         """Reset the environment to an initial state.
 
         Args:
             seed (int | None, optional): Seed value to pass to self.np_random. Defaults to None.
+            options: Options for the step function. Required by gymnasium. Defaults to None. 
 
         Returns:
             tuple[dict, dict]: A tuple of observations dict and info dict.

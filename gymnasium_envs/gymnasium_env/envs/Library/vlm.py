@@ -137,7 +137,7 @@ class VLM:
             "\n",
         )
 
-        output = self.processor.decode(output[0], skip_special_tokens=True)
+        output = self.processor.decode(output[0, inputs['input_ids'].shape[1]:], skip_special_tokens=True)
 
         if self.verbose == True:
             print(output)
@@ -146,7 +146,7 @@ class VLM:
 
 
 if __name__ == "__main__":
-    vlm = VLM(model_quant="fp16", device="cuda")
+    vlm = VLM(model_quant="fp16", device="cuda", verbose=True)
 
     while True:
         vlm.get_response(

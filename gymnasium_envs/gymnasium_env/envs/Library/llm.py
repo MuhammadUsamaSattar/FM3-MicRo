@@ -82,7 +82,25 @@ class LLM:
             str: Output response
         """
         # Autoregressively complete prompt and output T/s
-        inputs = self.tokenizer(txt, return_tensors="pt").to("cuda")
+        conversation = [
+            {
+                "role": "system",
+                "content": "You are a pirate",
+            },
+            {
+                "role": "user",
+                "content": txt,
+            },
+        ]
+
+        prompt = self.tokenizer.apply_chat_template(
+            conversation, add_generation_prompt=True, tokenize=False
+        )
+        inputs = self.tokenizer(text=prompt, return_tensors="pt").to(
+            "cuda"
+        )
+
+        # inputs = self.tokenizer(txt, return_tensors="pt").to("cuda")
 
         t = time.time()
 
@@ -99,7 +117,7 @@ class LLM:
             "\n",
         )
 
-        output = self.tokenizer.decode(output[0], skip_special_tokens=True)
+        output = self.tokenizer.decode(output[0, inputs['input_ids'].shape[1]:], skip_special_tokens=True)
 
         if self.verbose == True:
             print(output)
@@ -108,7 +126,8 @@ class LLM:
 
 
 if __name__ == "__main__":
-    llm = LLM(model_quant="fp16", device="cuda")
+
+    llm = LLM(model_quant="fp16", device="cuda", verbose=True)
 
     while True:
         llm.get_response(

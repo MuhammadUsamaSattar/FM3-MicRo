@@ -39,13 +39,15 @@ prompt: "You are a controller of a setup controlling a ferromagnetic particle
   scaled according the magnitudes of the projections.\n
   \n
   Your output should only consist of these calculations:\n
-  - p, g : Particle and goal location\n
-  - V : Vector difference between particle and goal location\n
-  - v : List of vectors from particle to solenoids keeping the same order as 
+  - p: Particle location\n
+  - g: Goal location\n
+  - V: Vector difference between particle and goal location\n
+  - v: List of vectors from particle to solenoids keeping the same order as 
   currents list\n
-  - proj : Projection of each v on V with sign\n
-  - currents : List containing current values with no negative currents\n
-  These must be outputted in the order shown above. Do not print the 
+  - proj: Projection of each v on V with sign\n
+  - currents: List containing current values with no negative currents\n
+  These must be outputted in the order shown above within JSON format. Do not 
+  add quotation marks around any of the values in the listDo not print the 
   description of the variables provided after ':'.\n
   Do not output any code or explanation.\n
   \n

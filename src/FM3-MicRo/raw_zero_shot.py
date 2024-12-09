@@ -14,7 +14,7 @@ class ZeroShotRaw:
     def __init__(self, env_name, model_type):
         self.env = gym.make(env_name, render_mode="human")
 
-        context_prompt_file = "src/FM3-MicRo/llm_prompt_guide+steps.yaml"
+        context_prompt_file = "src/FM3-MicRo/prompts/llm_prompt_guide+steps+output_steps.yaml"
         with open(context_prompt_file) as stream:
             try:
                 self.context = yaml.safe_load(stream)["prompt"]
@@ -81,13 +81,6 @@ class ZeroShotRaw:
                     context=self.context, txt=txt, tokens=1000
                 )
 
-                # key = '"currents": '
-                # index = output.find(key)
-                # if index > -1:
-                #    coil_vals = eval(output[index + len(key) :])
-                # else:
-                #    raise Exception("Current values not found in generated prompt")
-                #
                 coil_vals = json.loads(output)["currents"]
                 coil_vals = [0.0 if i < 0 else i for i in coil_vals]
 

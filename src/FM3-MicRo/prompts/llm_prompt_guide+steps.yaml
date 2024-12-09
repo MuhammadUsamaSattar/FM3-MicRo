@@ -38,7 +38,7 @@ prompt: "You are a controller of a setup controlling a ferromagnetic particle
   4) Turn on the solenoids corresponding to these vectors with magnitudes 
   scaled according the magnitudes of the projections.\n
   \n
-  Your output should only consist of these calculations:\n
+   Your thought process should consist of these calculations:\n
   - p: Particle location\n
   - g: Goal location\n
   - V: Vector difference between particle and goal location\n
@@ -46,10 +46,10 @@ prompt: "You are a controller of a setup controlling a ferromagnetic particle
   currents list\n
   - proj: Projection of each v on V with sign\n
   - currents: List containing current values with no negative currents\n
-  These must be outputted in the order shown above within JSON format. Do not 
-  add quotation marks around any of the values in the listDo not print the 
-  description of the variables provided after ':'.\n
-  Do not output any code or explanation.\n
   \n
-  Time to achieve the goal is important so you should try to use as many
-  solenoids as possible.\n"
+  Your output should only consist of these calculations:\n
+  - currents: List containing current values with no negative currents\n
+  These must be outputted in the order shown above with JSON format. Do not 
+  add quotation marks around any of the values in the list. Do not print the 
+  description of the variables provided after ':'.\n
+  Do not output any code or explanation.\n"

@@ -980,7 +980,6 @@ class Simulator:
         )
 
         if render:
-            # pygame.display.flip()
             self.window.blit(self.canvas, self.canvas.get_rect())
             pygame.event.pump()
             pygame.display.update()

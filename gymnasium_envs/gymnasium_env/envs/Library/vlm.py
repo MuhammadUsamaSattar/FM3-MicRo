@@ -18,6 +18,7 @@ class VLM:
 
     def __init__(
         self,
+        model_id: str,
         model_quant: str = "fp16",
         device: str = "cuda",
         verbose: bool = False,
@@ -25,13 +26,14 @@ class VLM:
         """Intializes the model and processor.
 
         Args:
+            model_id (str, optional): ID of the model on hugging face repository or local path to a download model.
             model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16".
             device (str, optional): Device which runs the model. Only "cuda" is available. Defaults to "cuda".
             verbose (bool, optional): Boolen to select verbose or non-verbose mode. Defaults to False.
         """
         # Load the path from .env file
         load_dotenv()
-        model_id = os.getenv("PATH_LLAVA")
+        model_id = os.getenv(model_id)
 
         # Initializes self.model and self.processor parameters depending upon given model_quant
         if model_quant == "fp16":
@@ -137,7 +139,9 @@ class VLM:
             "\n",
         )
 
-        output = self.processor.decode(output[0], skip_special_tokens=True)
+        output = self.processor.decode(
+            output[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True
+        )
 
         if self.verbose == True:
             print(output)
@@ -146,7 +150,12 @@ class VLM:
 
 
 if __name__ == "__main__":
-    vlm = VLM(model_quant="fp16", device="cuda")
+    vlm = VLM(
+        model_id="PATH_LLAVA",
+        model_quant="fp16",
+        device="cuda",
+        verbose=True,
+    )
 
     while True:
         vlm.get_response(

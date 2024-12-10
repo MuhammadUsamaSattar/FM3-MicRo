@@ -12,14 +12,30 @@ from gymnasium_env.envs.Library.vlm import VLM
 
 
 class ZeroShotRaw:
-    def __init__(self, env_name, model_type, model_quant="fp16"):
+
+    def __init__(
+        self,
+        env_name: str,
+        model_id: str,
+        model_type: str,
+        context_prompt_file: str,
+        model_quant: str = "fp16",
+    ):
+        """Initializes the foundation model and gym environment.
+
+        Args:
+            env_name (str): Name of the gymnasium environment that can be passed to gym.make().
+            model_id (str): ID of the model on hugging face repository or local path to a download model.model_id.
+            model_type (str): Type of the model. Options are "llm" and "vlm".
+            context_prompt_file (str): Name of the prompt file in the "prompts" folder.
+            model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16".
+        """
+
         self.model_type = model_type
         self.env = gym.make(env_name, render_mode="human")
 
         dir = "src/FM3-MicRo/prompts/"
-        context_prompt_file = (
-            dir + self.model_type + "_prompt_guide+steps+output_steps.yaml"
-        )
+        context_prompt_file = dir + context_prompt_file
         with open(context_prompt_file) as stream:
             try:
                 self.context = yaml.safe_load(stream)["prompt"]
@@ -28,22 +44,25 @@ class ZeroShotRaw:
                 print(exc)
 
         if self.model_type == "llm":
-            self.model = LLM(model_quant=model_quant, device="cuda", verbose=True)
+            self.model = LLM(
+                model_id=model_id, model_quant=model_quant, device="cuda", verbose=True
+            )
         elif self.model_type == "vlm":
-            self.model = VLM(model_quant=model_quant, device="cuda", verbose=True)
+            self.model = VLM(
+                model_id=model_id, model_quant=model_quant, device="cuda", verbose=True
+            )
 
         # Create a thread-safe queue to share coil values between threads
         self.coil_vals_queue = queue.Queue()
         self.obs_lock = threading.Lock()
 
     def run(self):
+        """Continously run the pygame frames and get data from the environment."""
         self.obs, info = self.env.reset()
         coil_vals = [0, 0, 0, 0, 0, 0, 0, 0]
 
         # Start a separate thread for calculating coil values
-        calc_thread = threading.Thread(
-            target=self.calculate_coil_vals, daemon=True
-        )  ############ Does this disable gpu? Compare to 15 T/s #######
+        calc_thread = threading.Thread(target=self.calculate_coil_vals, daemon=True)
         calc_thread.start()
 
         # Main loop to update the environment
@@ -66,9 +85,7 @@ class ZeroShotRaw:
                     self.obs = obs
 
     def calculate_coil_vals(self):
-        """
-        Continuously calculate coil values in a separate thread.
-        """
+        """Continuously calculate coil values in a separate thread."""
         while True:
             try:
                 # Get the current particle location and goal location
@@ -112,8 +129,10 @@ class ZeroShotRaw:
 
 if __name__ == "__main__":
     env = ZeroShotRaw(
-        "gymnasium_env/SingleParticleNoCargo-v0",
+        env_name="gymnasium_env/SingleParticleNoCargo-v0",
+        model_id="PATH_QWEN_14B",
         model_type="llm",
+        context_prompt_file="llm_prompt_guide+steps+output_steps.yaml",
         model_quant="4b",
     )
     env.run()

@@ -9,15 +9,21 @@ if __name__ == "__main__":
     # Parallel environments
     vec_env = make_vec_env(
         "gymnasium_env/SingleParticleNoCargo-v0",
-        n_envs=8,
+        n_envs=1,
         vec_env_cls=SubprocVecEnv,
-        env_kwargs={"render_mode": "rgb_array", "reward_type": "default"},
+        env_kwargs={
+            "render_mode": "rgb_array",
+            "model_id": "PATH_LLAMA",
+            "model_type": "llm",
+            "model_quant": "fp16",
+            "context_prompt_file": "llm_prompt_zero_shot.yaml",
+        },
     )
 
     model = PPO("MultiInputPolicy", vec_env, verbose=1, device="cpu")
-    model.learn(total_timesteps=2_500_000)
+    model.learn(total_timesteps=2_50)
 
-    model.save("control_models/ppo_default_parameters_2_500_000_steps")
+    model.save("control_models/ppo_default_parameters_2_500_000_steps_fm_rewards")
 
     obs = vec_env.reset()
 

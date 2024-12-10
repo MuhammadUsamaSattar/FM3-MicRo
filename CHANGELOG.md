@@ -1,3 +1,10 @@
+- **ed1f5e3:** Prompt file is now a parameter to the ZeroShotRaw class
+- **108941f:** Change VLM and LLM classes to take model_id in __init__()
+- **5cf05d1:** Add additional prompts for llm based raw one shot
+- **78969f3:** Change prompt output to JSON format. Change file names from 'x_shot_raw' to 'raw_x_shot'
+- **9a34e58:** Implement zero_shot_raw with gym env
+- **51ad47f:** Fix LLAMA chat format. Both LLAMA and LLAVA now only generate output text without input prompt
+- **5fe228f:** Added comments to files and organized imports
 - **e11e757:** Changed vlm class to allow both url and image as array/PIL option
 - **77af1eb:** Setup vlm and llm classes along with optimizations to maximize token generation rate.
 - **d151eca:** Setup llm module, vlm module and dev-scripts

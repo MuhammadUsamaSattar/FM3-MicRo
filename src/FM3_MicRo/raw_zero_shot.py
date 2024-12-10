@@ -1,4 +1,5 @@
 import json
+import os
 import queue
 import threading
 import yaml
@@ -25,7 +26,7 @@ class ZeroShotRaw:
 
         Args:
             env_name (str): Name of the gymnasium environment that can be passed to gym.make().
-            model_id (str): ID of the model on hugging face repository or local path to a download model.model_id.
+            model_id (str): ID of the model on hugging face repository or local path to a download model.
             model_type (str): Type of the model. Options are "llm" and "vlm".
             context_prompt_file (str): Name of the prompt file in the "prompts" folder.
             model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16".
@@ -34,7 +35,7 @@ class ZeroShotRaw:
         self.model_type = model_type
         self.env = gym.make(env_name, render_mode="human")
 
-        dir = "src/FM3-MicRo/prompts/"
+        dir = os.getcwd() + "/prompts/zero_shot/"
         context_prompt_file = dir + context_prompt_file
         with open(context_prompt_file) as stream:
             try:

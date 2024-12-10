@@ -1,5 +1,6 @@
 import sys
 import time
+import yaml
 
 import gymnasium as gym
 import numpy as np
@@ -19,21 +20,28 @@ class SingleParticleNoCargo(gym.Env):
     metadata = {
         "render_modes": [None, "human", "rgb_array"],
         "render_fps": 60,
-        "reward_types": ["default", "llm", "vlm"],
+        "model_types": [None, "llm", "vlm"],
     }
 
     def __init__(
         self,
         render_mode: str | None = None,
         episode_time_limit: int = 5,
-        reward_type: str = "default",
+        model_id: str | None = None,
+        model_type: str | None = None,
+        model_quant: str | None = None,
+        context_prompt_file: str | None = None,
     ):
-        """Initializes the environment
+        """Initializes the environment.
 
         Args:
             render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to None.
             episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
-            reward_type (str, optional): Type of reward function. "default", "llm" and "vlm" are available. "default" uses the euclidian distance between the particle and goal. Defaults to "default".
+            reward_type (str, optional): Type of reward function. "default", "llm" and "vlm" are available. "default" uses the euclidian distance between the particle and goal. Defaults to None.
+            model_id (str, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
+            model_type (str, optional): Type of the model. Options are "llm" and "vlm". Defaults to None.
+            model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
+            context_prompt_file (str, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
         """
         # Initialize the simulator
         self.simulator = Simulator(self.metadata["render_fps"])
@@ -59,8 +67,20 @@ class SingleParticleNoCargo(gym.Env):
 
         self.episode_time_limit = episode_time_limit
 
-        assert reward_type in self.metadata["reward_types"]
-        self.reward_type = reward_type
+        if model_id != None or model_type != None or model_quant != None or context_prompt_file != None:
+            assert model_id != None
+            assert model_type != None
+            assert model_quant != None
+            assert context_prompt_file != None
+
+            self.model_id = model_id
+
+            assert model_type in self.metadata["model_types"]
+            self.model_type = model_type
+
+            self.model_quant = model_quant
+
+            self._foundation_model_init_(context_prompt_file)
 
     def reset(self, seed: int | None = None, options=None) -> tuple[dict, dict]:
         """Reset the environment to an initial state.
@@ -77,6 +97,7 @@ class SingleParticleNoCargo(gym.Env):
 
         self.simulator.resetAtRandomLocs(seed)
         obs = self._get_obs()
+        self.prev_obs = obs
         info = self._get_info()
 
         self.frame_time = time.time()
@@ -101,6 +122,7 @@ class SingleParticleNoCargo(gym.Env):
         )
 
         # Extract necessary information from the state
+        self.prev_obs = obs
         obs = self._get_obs()
         info = self._get_info()
 
@@ -151,13 +173,33 @@ class SingleParticleNoCargo(gym.Env):
             "goal_loc": np.array(goal_loc, dtype=np.float32),
         }
 
-    def _reward_gen_init_(self):
+    def _foundation_model_init_(self, context_prompt_file):
         """Initialzies the foundation model for reward generation"""
-        if self.reward_type == "llm":
-            self.reward_gen = LLM()
 
-        elif self.reward_type == "vlm":
-            self.reward_gen = VLM()
+        dir = "src/FM3_MicRo/prompts/rl_fm_rewards/"
+        context_prompt_file = dir + context_prompt_file
+
+        with open(context_prompt_file) as stream:
+            try:
+                self.context = yaml.safe_load(stream)["prompt"]
+                print("Contextual prompt is:\n" + self.context)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        if self.model_type == "llm":
+            self.model = LLM(
+                model_id=self.model_id,
+                model_quant=self.model_quant,
+                device="cuda",
+                verbose=True,
+            )
+        elif self.model_type == "vlm":
+            self.model = VLM(
+                model_id=self.model_id,
+                model_quant=self.model_quant,
+                device="cuda",
+                verbose=True,
+            )
 
     def _get_info(self) -> dict:
         """Returns the info of the current state.
@@ -167,15 +209,47 @@ class SingleParticleNoCargo(gym.Env):
         """
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
-        if self.reward_type == "default":
+        if self.model_type == "default":
             return {
                 "reward": functions.distance(
                     particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
                 )
             }
 
-        elif self.reward_type == "llm":
-            return {"reward": self.reward_gen.get_response("TO BE DONE")}
+        elif self.model_type != None:
+            try:
+                # Get the previous particle location
+                prev_particle_loc = self.prev_obs["particle_loc"]
 
-        elif self.reward_type == "vlm":
-            return {"reward": self.reward_gen.get_response("TO BE DONE")}
+                # Construct the prompt
+                txt = (
+                    f"The particle was located at ({round(prev_particle_loc[0], 1)}, {round(prev_particle_loc[1], 1)}).\n"
+                    f"The particle is currently located at ({round(particle_loc[0], 1)}, {round(particle_loc[1], 1)}).\n"
+                    f"The goal is currently located at ({goal_loc[0]}, {goal_loc[1]}).\n\n"
+                    f"What is the reward score?"
+                )
+                print(txt)
+
+                # Use the model to calculate coil values
+                if self.model_type == "llm":
+                    output = self.model.get_response(
+                        context=self.context,
+                        txt=txt,
+                        tokens=1000,
+                    )
+
+                elif self.model_type == "vlm":
+                    output = self.model.get_response(
+                        img=self.get_rgb_array(),
+                        img_parameter_type="image",
+                        txt=txt,
+                        tokens=1000,
+                    )
+
+                output = int(output)
+                print(output)
+
+                return output
+
+            except Exception as e:
+                print(f"Error calculating coil values: {e}")

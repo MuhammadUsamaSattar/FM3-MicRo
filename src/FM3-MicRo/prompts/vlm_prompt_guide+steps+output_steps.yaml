@@ -5,6 +5,9 @@ prompt: "You are a controller of a setup controlling a ferromagnetic particle
   to a solenoid, it attracts the ferromagnetic particle towards itself with a 
   strength proportional to the amount of current.\n
   \n
+  The ferromagnetic particle is represented by the blueish gray circle while 
+  the solenoids are represented by black circles that turn green with a color 
+  intensity corresponding to the current value.\n
   The workspace can be projected on a square 2D plot where location of each 
   point can be represented as (x, y) where 'x' is the x-axis co-ordinate 
   while 'y' is the y-axis co-ordinate. The center of the workspace is at 

@@ -1,20 +1,25 @@
-import threading
 import json
-import queue  # For thread-safe communication
+import queue
+import threading
 import yaml
 
 import gymnasium as gym
 import gymnasium_env
+from PIL import Image
 
 from gymnasium_env.envs.Library.llm import LLM
 from gymnasium_env.envs.Library.vlm import VLM
 
 
 class ZeroShotRaw:
-    def __init__(self, env_name, model_type):
+    def __init__(self, env_name, model_type, model_quant="fp16"):
+        self.model_type = model_type
         self.env = gym.make(env_name, render_mode="human")
 
-        context_prompt_file = "src/FM3-MicRo/prompts/llm_prompt_guide+steps+output_steps.yaml"
+        dir = "src/FM3-MicRo/prompts/"
+        context_prompt_file = (
+            dir + self.model_type + "_prompt_guide+steps+output_steps.yaml"
+        )
         with open(context_prompt_file) as stream:
             try:
                 self.context = yaml.safe_load(stream)["prompt"]
@@ -22,10 +27,10 @@ class ZeroShotRaw:
             except yaml.YAMLError as exc:
                 print(exc)
 
-        if model_type == "llm":
-            self.model = LLM(model_quant="fp16", device="cuda", verbose=True)
-        elif model_type == "vlm":
-            self.model = VLM(model_quant="fp16", device="cuda", verbose=True)
+        if self.model_type == "llm":
+            self.model = LLM(model_quant=model_quant, device="cuda", verbose=True)
+        elif self.model_type == "vlm":
+            self.model = VLM(model_quant=model_quant, device="cuda", verbose=True)
 
         # Create a thread-safe queue to share coil values between threads
         self.coil_vals_queue = queue.Queue()
@@ -50,12 +55,15 @@ class ZeroShotRaw:
                 pass
 
             # If new coil values are available, pass them to the step function
+            obs, reward, done, truncated, info = self.env.step(coil_vals)
             with self.obs_lock:
-                self.obs, reward, done, truncated, info = self.env.step(coil_vals)
+                self.obs = obs
 
             if done:
+                obs, info = self.env.reset()
+
                 with self.obs_lock:
-                    self.obs, info = self.env.reset()
+                    self.obs = obs
 
     def calculate_coil_vals(self):
         """
@@ -77,9 +85,20 @@ class ZeroShotRaw:
                 print(txt)
 
                 # Use the model to calculate coil values
-                output = self.model.get_response(
-                    context=self.context, txt=txt, tokens=1000
-                )
+                if self.model_type == "llm":
+                    output = self.model.get_response(
+                        context=self.context,
+                        txt=txt,
+                        tokens=1000,
+                    )
+
+                elif self.model_type == "vlm":
+                    output = self.model.get_response(
+                        img=self.env.unwrapped.get_rgb_array(),
+                        img_parameter_type="image",
+                        txt=txt,
+                        tokens=1000,
+                    )
 
                 coil_vals = json.loads(output)["currents"]
                 coil_vals = [0.0 if i < 0 else i for i in coil_vals]
@@ -92,5 +111,9 @@ class ZeroShotRaw:
 
 
 if __name__ == "__main__":
-    env = ZeroShotRaw("gymnasium_env/SingleParticleNoCargo-v0", model_type="llm")
+    env = ZeroShotRaw(
+        "gymnasium_env/SingleParticleNoCargo-v0",
+        model_type="llm",
+        model_quant="4b",
+    )
     env.run()

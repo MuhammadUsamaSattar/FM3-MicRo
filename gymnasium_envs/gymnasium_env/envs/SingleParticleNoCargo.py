@@ -62,12 +62,12 @@ class SingleParticleNoCargo(gym.Env):
         assert reward_type in self.metadata["reward_types"]
         self.reward_type = reward_type
 
-    def reset(self, seed: int | None = None, options = None) -> tuple[dict, dict]:
+    def reset(self, seed: int | None = None, options=None) -> tuple[dict, dict]:
         """Reset the environment to an initial state.
 
         Args:
             seed (int | None, optional): Seed value to pass to self.np_random. Defaults to None.
-            options: Options for the step function. Required by gymnasium. Defaults to None. 
+            options: Options for the step function. Required by gymnasium. Defaults to None.
 
         Returns:
             tuple[dict, dict]: A tuple of observations dict and info dict.
@@ -125,10 +125,13 @@ class SingleParticleNoCargo(gym.Env):
         """Render the environment. Only handles "rgb_array" option. "human" option is handled through pygame."""
         # Returns an rgb array of the image for stable-baselines to be able render it on OpenCV when showing results of training
         if self.render_mode == "rgb_array":
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.simulator.canvas)),
-                axes=(1, 0, 2),
-            )
+            return self.get_rgb_array()
+
+    def get_rgb_array(self):
+        return np.transpose(
+            np.array(pygame.surfarray.pixels3d(self.simulator.canvas)),
+            axes=(1, 0, 2),
+        )
 
     def _close(self):
         """Close the environment and simulator. Only called when pygame window is closed by the user"""

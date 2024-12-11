@@ -1108,7 +1108,7 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    sim = Simulator(1)
+    sim = Simulator(30)
 
     running = True
     prev_time = time.time()
@@ -1119,6 +1119,6 @@ if __name__ == "__main__":
             particle_loc, goal_locs, coil_vals, coil_locs
         )
 
-        running, prev_time = sim.step(running, prev_time, coil_vals, False)
+        running, prev_time = sim.step(running, prev_time, coil_vals, True)
 
     pygame.quit()

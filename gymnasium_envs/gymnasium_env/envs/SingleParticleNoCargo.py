@@ -18,14 +18,14 @@ class SingleParticleNoCargo(gym.Env):
     """Custom Gymnasium Environment wrapping a Pygame-based Simulator."""
 
     metadata = {
-        "render_modes": [None, "human", "rgb_array"],
+        "render_modes": ["None", "human", "rgb_array"],
         "render_fps": 60,
         "model_types": [None, "llm", "vlm"],
     }
 
     def __init__(
         self,
-        render_mode: str | None = None,
+        render_mode: str = "None",
         episode_time_limit: int = 5,
         model_id: str | None = None,
         model_type: str | None = None,
@@ -67,7 +67,12 @@ class SingleParticleNoCargo(gym.Env):
 
         self.episode_time_limit = episode_time_limit
 
-        if model_id != None or model_type != None or model_quant != None or context_prompt_file != None:
+        if (
+            model_id != None
+            or model_type != None
+            or model_quant != None
+            or context_prompt_file != None
+        ):
             assert model_id != None
             assert model_type != None
             assert model_quant != None
@@ -96,14 +101,14 @@ class SingleParticleNoCargo(gym.Env):
         super().reset(seed=seed)
 
         self.simulator.resetAtRandomLocs(seed)
-        obs = self._get_obs()
-        self.prev_obs = obs
+        self.obs = self._get_obs()
+        self.prev_obs = self.obs.copy()
         info = self._get_info()
 
         self.frame_time = time.time()
         self.episode_time = time.time()
 
-        return obs, info
+        return self.obs, info
 
     def step(self, action: list[float]) -> tuple[dict, float, bool, bool, dict]:
         """Apply action, process the new state and return state data.
@@ -122,16 +127,22 @@ class SingleParticleNoCargo(gym.Env):
         )
 
         # Extract necessary information from the state
-        self.prev_obs = obs
-        obs = self._get_obs()
+        self.prev_obs = self.obs.copy()
+        self.obs = self._get_obs()
         info = self._get_info()
 
         # Calculate the reward as the negative distance to the goal
-        reward = -info["reward"]
+        reward = info["reward"]
 
         # Determine if the episode is done (if the particle is close to the goal)
         done = (
-            info["reward"] < initializations.SIM_MULTIPLE_GOALS_ACCURACY
+            functions.distance(
+                self.obs["particle_loc"][0],
+                self.obs["particle_loc"][1],
+                self.obs["goal_loc"][0],
+                self.obs["goal_loc"][1],
+            )
+            < initializations.SIM_MULTIPLE_GOALS_ACCURACY
             or not self.running
         )  # Done if close to goal or simulator is closed
 
@@ -141,7 +152,7 @@ class SingleParticleNoCargo(gym.Env):
         if self.running == False:
             self._close()
 
-        return obs, reward, done, truncated, info
+        return self.obs, reward, done, truncated, info
 
     def render(self):
         """Render the environment. Only handles "rgb_array" option. "human" option is handled through pygame."""
@@ -211,7 +222,7 @@ class SingleParticleNoCargo(gym.Env):
 
         if self.model_type == "default":
             return {
-                "reward": functions.distance(
+                "reward": -functions.distance(
                     particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
                 )
             }
@@ -219,12 +230,12 @@ class SingleParticleNoCargo(gym.Env):
         elif self.model_type != None:
             try:
                 # Get the previous particle location
-                prev_particle_loc = self.prev_obs["particle_loc"]
+                prev_particle_loc = self.prev_obs["particle_loc"].copy()
 
                 # Construct the prompt
                 txt = (
-                    f"The particle was located at ({round(prev_particle_loc[0], 1)}, {round(prev_particle_loc[1], 1)}).\n"
-                    f"The particle is currently located at ({round(particle_loc[0], 1)}, {round(particle_loc[1], 1)}).\n"
+                    f"The particle was located at ({prev_particle_loc[0]:.2f}, {prev_particle_loc[1]:.2f}).\n"
+                    f"The particle is currently located at ({particle_loc[0]:.2f}, {particle_loc[1]:.2f}).\n"
                     f"The goal is currently located at ({goal_loc[0]}, {goal_loc[1]}).\n\n"
                     f"What is the reward score?"
                 )
@@ -247,9 +258,8 @@ class SingleParticleNoCargo(gym.Env):
                     )
 
                 output = int(output)
-                print(output)
 
-                return output
+                return {"reward": output}
 
             except Exception as e:
                 print(f"Error calculating coil values: {e}")

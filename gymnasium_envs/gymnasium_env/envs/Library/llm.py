@@ -34,7 +34,7 @@ class LLM:
                 model_id,
                 low_cpu_mem_usage=True,
                 attn_implementation="flash_attention_2",
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
                 device_map=device,
                 token=access_token,
             )
@@ -49,7 +49,7 @@ class LLM:
                 quantization_config = BitsAndBytesConfig(
                     load_in_4bit=True,
                     bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.bfloat16,
+                    bnb_4bit_compute_dtype=torch.float16,
                 )
 
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -57,7 +57,7 @@ class LLM:
                 low_cpu_mem_usage=True,
                 attn_implementation="flash_attention_2",
                 quantization_config=quantization_config,
-                torch_dtype=torch.bfloat16,
+                torch_dtype=torch.float16,
                 device_map=device,
                 token=access_token,
             )
@@ -121,7 +121,7 @@ class LLM:
         )
 
         if self.verbose == True:
-            print(output)
+            print("Response: ", output)
 
         return output
 

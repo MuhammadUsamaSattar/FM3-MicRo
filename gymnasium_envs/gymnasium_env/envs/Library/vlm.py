@@ -144,7 +144,7 @@ class VLM:
         )
 
         if self.verbose == True:
-            print(output)
+            print("Response: ", output)
 
         return output
 

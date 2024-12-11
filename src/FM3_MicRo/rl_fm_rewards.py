@@ -6,22 +6,36 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 if __name__ == "__main__":
-    # Parallel environments
-    vec_env = make_vec_env(
+    # Single environment
+    vec_env = gym.make(
         "gymnasium_env/SingleParticleNoCargo-v0",
-        n_envs=1,
-        vec_env_cls=SubprocVecEnv,
-        env_kwargs={
+        **{
             "render_mode": "rgb_array",
-            "model_id": "PATH_LLAMA",
+            "model_id": "PATH_QWEN_14B",
             "model_type": "llm",
-            "model_quant": "fp16",
+            "model_quant": "4b",
             "context_prompt_file": "llm_prompt_zero_shot.yaml",
+            "verbose": True,
         },
     )
 
+    # Parallel environments
+    # vec_env = gym.make(
+    #    "gymnasium_env/SingleParticleNoCargo-v0",
+    #    #n_envs=1,
+    #    #vec_env_cls=SubprocVecEnv,
+    #    env_kwargs={
+    #        "render_mode": "rgb_array",
+    #        "model_id": "PATH_QWEN_14B",
+    #        "model_type": "llm",
+    #        "model_quant": "4b",
+    #        "context_prompt_file": "llm_prompt_zero_shot.yaml",
+    #        "verbose": True,
+    #    },
+    # )
+
     model = PPO("MultiInputPolicy", vec_env, verbose=1, device="cpu")
-    model.learn(total_timesteps=2_50)
+    model.learn(total_timesteps=2_5)
 
     model.save("control_models/ppo_default_parameters_2_500_000_steps_fm_rewards")
 

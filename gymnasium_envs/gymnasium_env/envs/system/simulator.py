@@ -1108,7 +1108,7 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    sim = Simulator(30)
+    sim = Simulator(60)
 
     running = True
     prev_time = time.time()

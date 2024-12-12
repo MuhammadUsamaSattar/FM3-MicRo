@@ -31,6 +31,7 @@ class SingleParticleNoCargo(gym.Env):
         model_type: str | None = None,
         model_quant: str | None = None,
         context_prompt_file: str | None = None,
+        verbose: bool = False,
     ):
         """Initializes the environment.
 
@@ -42,6 +43,7 @@ class SingleParticleNoCargo(gym.Env):
             model_type (str, optional): Type of the model. Options are "llm" and "vlm". Defaults to None.
             model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
             context_prompt_file (str, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
+            verbose (bool, optional): Enables or disables verbosity mode. Defaults to False.
         """
         # Initialize the simulator
         self.simulator = Simulator(self.metadata["render_fps"])
@@ -66,6 +68,16 @@ class SingleParticleNoCargo(gym.Env):
         self.render_mode = render_mode
 
         self.episode_time_limit = episode_time_limit
+
+        self.verbose = verbose
+        self.time_logs = {
+            "simulator_step()_total": None,
+            "_get_obs()_total": None,
+            "_get_info()_total": None,
+            "self.step()_total": None,
+        }
+
+        self.record = {"correct": 0, "incorrect": 0}
 
         if (
             model_id != None
@@ -119,17 +131,34 @@ class SingleParticleNoCargo(gym.Env):
         Returns:
             tuple[dict, float, bool, bool, dict]: Tuple containing the new observation, reward, done (epsiode completed), truncated (episode terminated) and info
         """
+
+        self.time_logs["self.step()_total"] = time.time()
+
         render = str(self.render_mode) == "human"
 
         # Run one frame of the simulator
+        self.time_logs["simulator_step()_total"] = time.time()
         self.running, self.frame_time = self.simulator.step(
             self.running, self.frame_time, action, render
+        )
+        self.time_logs["simulator_step()_total"] = (
+            time.time() - self.time_logs["simulator_step()_total"]
         )
 
         # Extract necessary information from the state
         self.prev_obs = self.obs.copy()
+
+        self.time_logs["_get_obs()_total"] = time.time()
         self.obs = self._get_obs()
+        self.time_logs["_get_obs()_total"] = (
+            time.time() - self.time_logs["_get_obs()_total"]
+        )
+
+        self.time_logs["_get_info()_total"] = time.time()
         info = self._get_info()
+        self.time_logs["_get_info()_total"] = (
+            time.time() - self.time_logs["_get_info()_total"]
+        )
 
         # Calculate the reward as the negative distance to the goal
         reward = info["reward"]
@@ -151,6 +180,24 @@ class SingleParticleNoCargo(gym.Env):
 
         if self.running == False:
             self._close()
+
+        self.time_logs["self.step()_total"] = (
+            time.time() - self.time_logs["self.step()_total"]
+        )
+
+        if self.verbose == True:
+            print(
+                f"{'Time elapsed [simulator_step()_total]':45} : {self.time_logs['simulator_step()_total']:10.5f}"
+            )
+            print(
+                f"{'Time elapsed [_get_obs()_total]':45} : {self.time_logs['_get_obs()_total']:10.5f}"
+            )
+            print(
+                f"{'Time elapsed [_get_info()_total]':45} : {self.time_logs['_get_info()_total']:10.5f}"
+            )
+            print(
+                f"{'Time elapsed [self.step()_total]':45} : {self.time_logs['self.step()_total']:10.5f}\n"
+            )
 
         return self.obs, reward, done, truncated, info
 
@@ -202,14 +249,14 @@ class SingleParticleNoCargo(gym.Env):
                 model_id=self.model_id,
                 model_quant=self.model_quant,
                 device="cuda",
-                verbose=True,
+                verbose=False,
             )
         elif self.model_type == "vlm":
             self.model = VLM(
                 model_id=self.model_id,
                 model_quant=self.model_quant,
                 device="cuda",
-                verbose=True,
+                verbose=False,
             )
 
     def _get_info(self) -> dict:
@@ -218,10 +265,11 @@ class SingleParticleNoCargo(gym.Env):
         Returns:
             dict: Dictionary containing the reward
         """
+
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
         if self.model_type == "default":
-            return {
+            info = {
                 "reward": -functions.distance(
                     particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
                 )
@@ -234,12 +282,12 @@ class SingleParticleNoCargo(gym.Env):
 
                 # Construct the prompt
                 txt = (
+                    f"\n"
                     f"The particle was located at ({prev_particle_loc[0]:.2f}, {prev_particle_loc[1]:.2f}).\n"
                     f"The particle is currently located at ({particle_loc[0]:.2f}, {particle_loc[1]:.2f}).\n"
-                    f"The goal is currently located at ({goal_loc[0]}, {goal_loc[1]}).\n\n"
+                    f"The goal is currently located at ({goal_loc[0]:.2f}, {goal_loc[1]:.2f}).\n\n"
                     f"What is the reward score?"
                 )
-                print(txt)
 
                 # Use the model to calculate coil values
                 if self.model_type == "llm":
@@ -259,7 +307,50 @@ class SingleParticleNoCargo(gym.Env):
 
                 output = int(output)
 
-                return {"reward": output}
+                if (
+                    (
+                        functions.distance(
+                            prev_particle_loc[0],
+                            prev_particle_loc[1],
+                            goal_loc[0],
+                            goal_loc[1],
+                        )
+                        - functions.distance(
+                            particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                        )
+                    )
+                    > 0
+                    and output == 1
+                ) or (
+                    (
+                        functions.distance(
+                            prev_particle_loc[0],
+                            prev_particle_loc[1],
+                            goal_loc[0],
+                            goal_loc[1],
+                        )
+                        - functions.distance(
+                            particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                        )
+                    )
+                    <= 0
+                    and output == 0
+                ):
+                    self.record["correct"] += 1
+                else:
+                    self.record["incorrect"] += 1
+
+                if self.verbose:
+                    print(f"{txt}\n")
+                    print(f"{output}\n")
+                    print(f"{self.record}\n")
+                    print(
+                        f"Accuracy: {(self.record['correct'] / (self.record['correct']+self.record['incorrect'])):.2f}\n"
+                    )
+
+                info = {"reward": output}
 
             except Exception as e:
                 print(f"Error calculating coil values: {e}")
+
+        return info

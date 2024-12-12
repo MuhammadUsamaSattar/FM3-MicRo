@@ -133,18 +133,18 @@ class VLM:
         dt = time.time() - t
         generated_tokens = len(output[0]) - len(inputs["input_ids"][0])
 
-        print(
-            "Token generation rate (T/s): ",
-            generated_tokens / dt,
-            "\n",
-        )
-
         output = self.processor.decode(
             output[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True
         )
 
         if self.verbose == True:
             print("Response: ", output)
+
+            print(
+                "Token generation rate (T/s): ",
+                generated_tokens / dt,
+                "\n",
+            )
 
         return output
 

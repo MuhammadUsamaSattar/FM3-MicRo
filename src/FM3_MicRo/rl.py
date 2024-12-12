@@ -11,7 +11,7 @@ if __name__ == "__main__":
         "gymnasium_env/SingleParticleNoCargo-v0",
         n_envs=8,
         vec_env_cls=SubprocVecEnv,
-        env_kwargs={"render_mode": "rgb_array", "model_type": "default"},
+        env_kwargs={"render_mode": "rgb_array", "fps": 60, "model_type": "default"},
     )
 
     model = PPO("MultiInputPolicy", vec_env, verbose=1, device="cpu")

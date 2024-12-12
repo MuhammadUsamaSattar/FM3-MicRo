@@ -1,3 +1,7 @@
+- **1ea3517:** Added set_reward_params() to SingleParticleNoCargo class which allows switching between FM based rewards and Euclidian distance based rewards for faster frame times during model testing
+- **6a6ddfe:** Added time logging to SingleParticleNoCargo class via 'verbose' parameter
+- **d22f07f:** RL with FM rewards works in sequential computing
+- **887a2cc:** Started modifying gym environment to work with foundation models
 - **ed1f5e3:** Prompt file is now a parameter to the ZeroShotRaw class
 - **108941f:** Change VLM and LLM classes to take model_id in __init__()
 - **5cf05d1:** Add additional prompts for llm based raw one shot

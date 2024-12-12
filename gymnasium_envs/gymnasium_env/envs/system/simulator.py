@@ -945,7 +945,7 @@ class Simulator:
                 self.particle_loc, coil_vals, self.goal_locs, 1
             )
 
-        self.particle_loc, self.particle_vel, prev_time = self.updateParticleLocation(
+        self.particle_loc, self.particle_vel, new_time = self.updateParticleLocation(
             self.particle_loc,
             self.particle_vel,
             self.flag_edit_particle_mouse,
@@ -953,6 +953,11 @@ class Simulator:
             self.coil_locs,
             prev_time,
         )
+
+        # Sleeps to adhere to framerate
+        if self.framerate != None:
+            time.sleep(max(0, (1/self.framerate) - (time.time()-prev_time)))
+        prev_time = new_time
 
         coil_vals = functions.limit_coil_vals(coil_vals)
 
@@ -983,10 +988,6 @@ class Simulator:
             self.window.blit(self.canvas, self.canvas.get_rect())
             pygame.event.pump()
             pygame.display.update()
-
-            self.clock.tick(
-                self.framerate
-            )  # Sleeps in between loop so that fps is equal to self.framerate
 
         if self.flag_record:
             self.recorder.capture_frame(self.canvas)

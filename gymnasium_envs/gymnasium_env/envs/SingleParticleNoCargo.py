@@ -26,6 +26,7 @@ class SingleParticleNoCargo(gym.Env):
     def __init__(
         self,
         render_mode: str = "None",
+        render_fps: int = 60,
         episode_time_limit: int = 5,
         model_id: str | None = None,
         model_type: str | None = None,
@@ -45,8 +46,10 @@ class SingleParticleNoCargo(gym.Env):
             verbose (bool, optional): Sets verbosity mode. Defaults to False.
         """
 
+        self.metadata["render_fps"] = render_fps
+
         # Initialize the simulator
-        self.simulator = Simulator(self.metadata["render_fps"])
+        self.simulator = Simulator(render_fps)
 
         # Define observation space: 2D particle location (-r to r) and 2D goal location (-r to r)
         r = initializations.SIM_SOL_CIRCLE_RAD
@@ -315,7 +318,10 @@ class SingleParticleNoCargo(gym.Env):
             info = {
                 "reward": -functions.distance(
                     particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
-                )
+                ),
+                "distance": functions.distance(
+                    particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                ),
             }
 
         elif self.model_type != None:
@@ -391,7 +397,12 @@ class SingleParticleNoCargo(gym.Env):
                         f"Accuracy: {(self.record['correct'] / (self.record['correct']+self.record['incorrect'])):.2f}\n"
                     )
 
-                info = {"reward": output}
+                info = {
+                    "reward": output,
+                    "distance": functions.distance(
+                        particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                    ),
+                }
 
             except Exception as e:
                 print(f"Error calculating coil values: {e}")

@@ -36,15 +36,15 @@ class SingleParticleNoCargo(gym.Env):
         """Initializes the environment.
 
         Args:
-            render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to None.
+            render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to "None".
             episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
-            reward_type (str, optional): Type of reward function. "default", "llm" and "vlm" are available. "default" uses the euclidian distance between the particle and goal. Defaults to None.
-            model_id (str, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
-            model_type (str, optional): Type of the model. Options are "llm" and "vlm". Defaults to None.
-            model_quant (str, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
-            context_prompt_file (str, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
-            verbose (bool, optional): Enables or disables verbosity mode. Defaults to False.
+            model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
+            model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
+            model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
+            context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
+            verbose (bool, optional): Sets verbosity mode. Defaults to False.
         """
+
         # Initialize the simulator
         self.simulator = Simulator(self.metadata["render_fps"])
 
@@ -79,6 +79,9 @@ class SingleParticleNoCargo(gym.Env):
 
         self.record = {"correct": 0, "incorrect": 0}
 
+        assert model_type in self.metadata["model_types"]
+        self.model_type = model_type
+
         if (
             model_id != None
             or model_type != None
@@ -92,14 +95,15 @@ class SingleParticleNoCargo(gym.Env):
 
             self.model_id = model_id
 
-            assert model_type in self.metadata["model_types"]
-            self.model_type = model_type
-
             self.model_quant = model_quant
 
             self._foundation_model_init_(context_prompt_file)
 
-    def reset(self, seed: int | None = None, options=None) -> tuple[dict, dict]:
+    def reset(
+        self,
+        seed: int | None = None,
+        options=None,
+    ) -> tuple[dict, dict]:
         """Reset the environment to an initial state.
 
         Args:
@@ -109,6 +113,7 @@ class SingleParticleNoCargo(gym.Env):
         Returns:
             tuple[dict, dict]: A tuple of observations dict and info dict.
         """
+
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
@@ -122,7 +127,10 @@ class SingleParticleNoCargo(gym.Env):
 
         return self.obs, info
 
-    def step(self, action: list[float]) -> tuple[dict, float, bool, bool, dict]:
+    def step(
+        self,
+        action: list[float],
+    ) -> tuple[dict, float, bool, bool, dict]:
         """Apply action, process the new state and return state data.
 
         Args:
@@ -203,9 +211,33 @@ class SingleParticleNoCargo(gym.Env):
 
     def render(self):
         """Render the environment. Only handles "rgb_array" option. "human" option is handled through pygame."""
+
         # Returns an rgb array of the image for stable-baselines to be able render it on OpenCV when showing results of training
         if self.render_mode == "rgb_array":
             return self.get_rgb_array()
+
+    def set_reward_params(
+        self,
+        model_id: str | None = None,
+        model_type: str | None = None,
+        model_quant: str | None = None,
+        context_prompt_file: str | None = None,
+    ):
+        """Sets reward generator's parameters.
+
+        Args:
+            model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
+            model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
+            model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
+            context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
+        """
+
+        self.model_id = model_id
+        self.model_type = model_type
+        self.model_quant = model_quant
+
+        if context_prompt_file != None:
+            self._foundation_model_init_(context_prompt_file)
 
     def get_rgb_array(self):
         return np.transpose(
@@ -215,6 +247,7 @@ class SingleParticleNoCargo(gym.Env):
 
     def _close(self):
         """Close the environment and simulator. Only called when pygame window is closed by the user"""
+
         self.simulator.close()
         sys.exit()
 
@@ -224,6 +257,7 @@ class SingleParticleNoCargo(gym.Env):
         Returns:
             dict: Observation dictionary containing the particle location and goal location.
         """
+
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
         return {
@@ -231,8 +265,15 @@ class SingleParticleNoCargo(gym.Env):
             "goal_loc": np.array(goal_loc, dtype=np.float32),
         }
 
-    def _foundation_model_init_(self, context_prompt_file):
-        """Initialzies the foundation model for reward generation"""
+    def _foundation_model_init_(
+        self,
+        context_prompt_file,
+    ):
+        """Initialzies the foundation model for reward generation
+
+        Args:
+            context_prompt_file (str, optional): Name of the prompt file in the "prompts" folder.
+        """
 
         dir = "src/FM3_MicRo/prompts/rl_fm_rewards/"
         context_prompt_file = dir + context_prompt_file
@@ -259,7 +300,9 @@ class SingleParticleNoCargo(gym.Env):
                 verbose=False,
             )
 
-    def _get_info(self) -> dict:
+    def _get_info(
+        self,
+    ) -> dict:
         """Returns the info of the current state.
 
         Returns:
@@ -268,7 +311,7 @@ class SingleParticleNoCargo(gym.Env):
 
         particle_loc, goal_loc, _, _ = self.simulator.getState()
 
-        if self.model_type == "default":
+        if self.model_type == None:
             info = {
                 "reward": -functions.distance(
                     particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]

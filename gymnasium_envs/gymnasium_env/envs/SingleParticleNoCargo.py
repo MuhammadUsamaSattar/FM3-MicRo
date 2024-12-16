@@ -38,6 +38,7 @@ class SingleParticleNoCargo(gym.Env):
 
         Args:
             render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to "None".
+            render_fps (int, optional): Rendering framerate. Defaults to 60.
             episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
             model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
             model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
@@ -221,6 +222,7 @@ class SingleParticleNoCargo(gym.Env):
 
     def set_reward_params(
         self,
+        render_fps: int = 60,
         model_id: str | None = None,
         model_type: str | None = None,
         model_quant: str | None = None,
@@ -229,11 +231,13 @@ class SingleParticleNoCargo(gym.Env):
         """Sets reward generator's parameters.
 
         Args:
+            render_fps (int, optional): Rendering framerate. Defaults to 60.
             model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
             model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
             model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
             context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
         """
+        self.metadata['render_fps'] = render_fps
 
         self.model_id = model_id
         self.model_type = model_type

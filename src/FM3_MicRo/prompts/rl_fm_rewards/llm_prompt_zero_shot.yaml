@@ -7,8 +7,7 @@ prompt: "You are provided description of a 2D workspace where location of
   the goal position, the previous position of the particle and the new 
   position of the particle. If the particle moves in the direction of the 
   goal, you assign a score of 1. If the particle either moves away from the 
-  goal or does not move closer to the goal, you assign a score of 0. You 
-  have to output the following calculations:\n
+  goal or does not move closer to the goal, you assign a score of 0.\n
   \n
   You must only output either a 0 or 1. Do not output any other text in your 
   reponse. Do not output any code or explanation.\n"

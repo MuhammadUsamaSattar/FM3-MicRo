@@ -1,3 +1,4 @@
+- **185e3b4:** Added options for the reinforcement learning file. Added prompts for continous reward values
 - **d7f44c1:** Implemented both standard reward and foundation model
 - **ad6a278:** Added data logging and plot generation in rl_fm_rewards.py
 - **1ea3517:** Added set_reward_params() to SingleParticleNoCargo class which allows switching between FM based rewards and Euclidian distance based rewards for faster frame times during model testing

@@ -20,7 +20,7 @@ class SingleParticleNoCargo(gym.Env):
     metadata = {
         "render_modes": ["None", "human", "rgb_array"],
         "render_fps": 60,
-        "model_types": [None, "llm", "vlm"],
+        "reward_types": [None, "euclidean", "delta_r", "llm", "vlm"],
     }
 
     def __init__(
@@ -28,8 +28,9 @@ class SingleParticleNoCargo(gym.Env):
         render_mode: str = "None",
         render_fps: int = 60,
         episode_time_limit: int = 5,
+        n_obs: int = 10,
         model_id: str | None = None,
-        model_type: str | None = None,
+        reward_type: str | None = None,
         model_quant: str | None = None,
         context_prompt_file: str | None = None,
         verbose: bool = False,
@@ -42,6 +43,7 @@ class SingleParticleNoCargo(gym.Env):
             render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to "None".
             render_fps (int, optional): Rendering framerate. Defaults to 60.
             episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
+            n_obs (int, optional): Number of particle locations to get for input. Defaults to 10.
             model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
             model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
             model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
@@ -60,8 +62,14 @@ class SingleParticleNoCargo(gym.Env):
         r = initializations.SIM_SOL_CIRCLE_RAD
         self.observation_space = spaces.Dict(
             {
-                "particle_loc": spaces.Box(
-                    low=-r, high=r, shape=(2,), dtype=np.float32
+                "particle_locs": spaces.Box(
+                    low=-r,
+                    high=r,
+                    shape=(
+                        n_obs,
+                        2,
+                    ),
+                    dtype=np.float32,
                 ),
                 "goal_loc": spaces.Box(low=-r, high=r, shape=(2,), dtype=np.float32),
             }
@@ -69,8 +77,6 @@ class SingleParticleNoCargo(gym.Env):
 
         # Define action space: 8 coil currents, each between 0 and 1
         self.action_space = spaces.Box(low=0.0, high=1.0, shape=(8,), dtype=np.float32)
-
-        self.running = True
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -87,17 +93,18 @@ class SingleParticleNoCargo(gym.Env):
 
         self.record = {"correct": 0, "incorrect": 0}
 
-        assert model_type in self.metadata["model_types"]
-        self.model_type = model_type
+        assert reward_type in self.metadata["reward_types"]
+        self.reward_type = reward_type
 
         if (
             model_id != None
-            or model_type != None
+            or reward_type == "llm"
+            or reward_type == "vlm"
             or model_quant != None
             or context_prompt_file != None
         ):
             assert model_id != None
-            assert model_type != None
+            assert reward_type == "llm" or reward_type == "vlm"
             assert model_quant != None
             assert context_prompt_file != None
 
@@ -109,6 +116,7 @@ class SingleParticleNoCargo(gym.Env):
 
         self.particle_reset = particle_reset
         self.goal_reset = goal_reset
+        self.n_obs = n_obs
 
     def reset(
         self,
@@ -130,10 +138,8 @@ class SingleParticleNoCargo(gym.Env):
 
         self.simulator.resetAtRandomLocs(seed, self.particle_reset, self.goal_reset)
         self.obs = self._get_obs()
-        self.prev_obs = self.obs.copy()
         info = self._get_info()
 
-        self.frame_time = time.time()
         self.episode_time = time.time()
 
         return self.obs, info
@@ -157,16 +163,12 @@ class SingleParticleNoCargo(gym.Env):
 
         # Run one frame of the simulator
         self.time_logs["simulator_step()_total"] = time.time()
-        self.running, self.frame_time = self.simulator.step(
-            self.running, self.frame_time, action, render
-        )
+        self.simulator.step(action, render)
         self.time_logs["simulator_step()_total"] = (
             time.time() - self.time_logs["simulator_step()_total"]
         )
 
         # Extract necessary information from the state
-        self.prev_obs = self.obs.copy()
-
         self.time_logs["_get_obs()_total"] = time.time()
         self.obs = self._get_obs()
         self.time_logs["_get_obs()_total"] = (
@@ -185,20 +187,16 @@ class SingleParticleNoCargo(gym.Env):
         # Determine if the episode is done (if the particle is close to the goal)
         done = (
             functions.distance(
-                self.obs["particle_loc"][0],
-                self.obs["particle_loc"][1],
+                self.obs["particle_locs"][-1][0],
+                self.obs["particle_locs"][-1][1],
                 self.obs["goal_loc"][0],
                 self.obs["goal_loc"][1],
             )
             < initializations.SIM_MULTIPLE_GOALS_ACCURACY
-            or not self.running
         )  # Done if close to goal or simulator is closed
 
         # Determine if the time limit has been reached
         truncated = (time.time() - self.episode_time) > (self.episode_time_limit)
-
-        if self.running == False:
-            self._close()
 
         self.time_logs["self.step()_total"] = (
             time.time() - self.time_logs["self.step()_total"]
@@ -231,7 +229,7 @@ class SingleParticleNoCargo(gym.Env):
         self,
         render_fps: int = 60,
         model_id: str | None = None,
-        model_type: str | None = None,
+        reward_type: str | None = None,
         model_quant: str | None = None,
         context_prompt_file: str | None = None,
     ):
@@ -247,7 +245,7 @@ class SingleParticleNoCargo(gym.Env):
         self.metadata["render_fps"] = render_fps
 
         self.model_id = model_id
-        self.model_type = model_type
+        self.reward_type = reward_type
         self.model_quant = model_quant
 
         if context_prompt_file != None:
@@ -272,10 +270,12 @@ class SingleParticleNoCargo(gym.Env):
             dict: Observation dictionary containing the particle location and goal location.
         """
 
-        particle_loc, goal_loc, _, _ = self.simulator.getState()
+        particle_locs, goal_loc, _, _ = self.simulator.getState(
+            self.n_obs,
+        )
 
         return {
-            "particle_loc": np.array(particle_loc, dtype=np.float32),
+            "particle_locs": np.array(particle_locs, dtype=np.float32),
             "goal_loc": np.array(goal_loc, dtype=np.float32),
         }
 
@@ -299,14 +299,14 @@ class SingleParticleNoCargo(gym.Env):
             except yaml.YAMLError as exc:
                 print(exc)
 
-        if self.model_type == "llm":
+        if self.reward_type == "llm":
             self.model = LLM(
                 model_id=self.model_id,
                 model_quant=self.model_quant,
                 device="cuda",
                 verbose=False,
             )
-        elif self.model_type == "vlm":
+        elif self.reward_type == "vlm":
             self.model = VLM(
                 model_id=self.model_id,
                 model_quant=self.model_quant,
@@ -323,41 +323,66 @@ class SingleParticleNoCargo(gym.Env):
             dict: Dictionary containing the reward
         """
 
-        particle_loc, goal_loc, _, _ = self.simulator.getState()
-
-        if self.model_type == None:
+        if self.reward_type == "euclidean":
             info = {
                 "reward": -functions.distance(
-                    particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                    self.obs["particle_locs"][-1][0],
+                    self.obs["particle_locs"][-1][1],
+                    self.obs["goal_loc"][0],
+                    self.obs["goal_loc"][1],
                 ),
                 "distance": functions.distance(
-                    particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                    self.obs["particle_locs"][-1][0],
+                    self.obs["particle_locs"][-1][1],
+                    self.obs["goal_loc"][0],
+                    self.obs["goal_loc"][1],
                 ),
             }
 
-        elif self.model_type != None:
-            try:
-                # Get the previous particle location
-                prev_particle_loc = self.prev_obs["particle_loc"].copy()
+        elif self.reward_type == "delta_r":
+            info = {
+                "reward": (
+                    functions.distance(
+                        self.obs["particle_locs"][0][0],
+                        self.obs["particle_locs"][0][1],
+                        self.obs["goal_loc"][0],
+                        self.obs["goal_loc"][1],
+                    )
+                    - functions.distance(
+                        self.obs["particle_locs"][-1][0],
+                        self.obs["particle_locs"][-1][1],
+                        self.obs["goal_loc"][0],
+                        self.obs["goal_loc"][1],
+                    )
+                ),
+                "distance": functions.distance(
+                    self.obs["particle_locs"][-1][0],
+                    self.obs["particle_locs"][-1][1],
+                    self.obs["goal_loc"][0],
+                    self.obs["goal_loc"][1],
+                ),
+            }
 
+        elif self.reward_type == "llm" or self.reward_type == "vlm":
+            try:
                 # Construct the prompt
                 txt = (
                     f"\n"
-                    f"The particle was located at ({prev_particle_loc[0]:.2f}, {prev_particle_loc[1]:.2f}).\n"
-                    f"The particle is currently located at ({particle_loc[0]:.2f}, {particle_loc[1]:.2f}).\n"
-                    f"The goal is currently located at ({goal_loc[0]:.2f}, {goal_loc[1]:.2f}).\n\n"
+                    f"The particle was located at ({self.obs['particle_locs'][0][0]:.2f}, {self.obs['particle_locs'][0][1]:.2f}).\n"
+                    f"The particle is currently located at ({self.obs['particle_locs'][-1][0]:.2f}, {self.obs['particle_locs'][-1][1]:.2f}).\n"
+                    f"The goal is currently located at ({self.obs['goal_loc'][0]:.2f}, {self.obs['goal_loc'][1]:.2f}).\n\n"
                     f"What is the reward score?"
                 )
 
                 # Use the model to calculate coil values
-                if self.model_type == "llm":
+                if self.reward_type == "llm":
                     output = self.model.get_response(
                         context=self.context,
                         txt=txt,
                         tokens=1000,
                     )
 
-                elif self.model_type == "vlm":
+                elif self.reward_type == "vlm":
                     output = self.model.get_response(
                         img=self.get_rgb_array(),
                         img_parameter_type="image",
@@ -368,18 +393,18 @@ class SingleParticleNoCargo(gym.Env):
                 try:
                     output = float(output)
                 except ValueError:
-                    output = float(output[:output.find("\n")])
+                    output = float(output[: output.find("\n")])
 
                 delta_r = functions.distance(
-                    prev_particle_loc[0],
-                    prev_particle_loc[1],
-                    goal_loc[0],
-                    goal_loc[1],
+                    self.obs["particle_locs"][0][0],
+                    self.obs["particle_locs"][0][1],
+                    self.obs["goal_loc"][0],
+                    self.obs["goal_loc"][1],
                 ) - functions.distance(
-                    particle_loc[0],
-                    particle_loc[1],
-                    goal_loc[0],
-                    goal_loc[1],
+                    self.obs["particle_locs"][-1][0],
+                    self.obs["particle_locs"][-1][1],
+                    self.obs["goal_loc"][0],
+                    self.obs["goal_loc"][1],
                 )
 
                 if (delta_r > 0 and output > 0) or (delta_r <= 0 and output <= 0):
@@ -399,7 +424,10 @@ class SingleParticleNoCargo(gym.Env):
                 info = {
                     "reward": output,
                     "distance": functions.distance(
-                        particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
+                        self.obs["particle_locs"][-1][0],
+                        self.obs["particle_locs"][-1][1],
+                        self.obs["goal_loc"][0],
+                        self.obs["goal_loc"][1],
                     ),
                 }
 
@@ -408,10 +436,10 @@ class SingleParticleNoCargo(gym.Env):
 
         if (
             functions.distance(
-                particle_loc[0],
-                particle_loc[1],
-                goal_loc[0],
-                goal_loc[1],
+                self.obs["particle_locs"][-1][0],
+                self.obs["particle_locs"][-1][1],
+                self.obs["goal_loc"][0],
+                self.obs["goal_loc"][1],
             )
             < initializations.SIM_MULTIPLE_GOALS_ACCURACY
         ):

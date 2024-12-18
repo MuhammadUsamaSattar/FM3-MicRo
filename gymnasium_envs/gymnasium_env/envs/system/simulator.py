@@ -1,6 +1,7 @@
 import datetime
 import math
 import os
+import sys
 import time
 
 import numpy as np
@@ -108,6 +109,9 @@ class Simulator:
             os.path.dirname(__file__) + "/Models/" + model_filename + ".pkl", "rb"
         ) as f:
             self.model = pickle.load(f)
+
+        self.prev_time = time.time()
+        self.render = False
 
     def renderInit(self):
         pygame.init()
@@ -911,19 +915,16 @@ class Simulator:
 
         return running
 
-    def step(self, running, prev_time, coil_vals, render):
+    def step(self, coil_vals, render):
         """Runs one frame
 
         Args:
-            running : Determines whether program is still running
-            coil_vals : Normalized coil current values
-            prev_time : Time stamp of previous frame in seconds
+            coil_vals : List of size 8 containing scaled current values where 0th value corresponds to the Northern coil
             render : Determines if canvas should be rendered
-
-        Returns:
-            bool: Determines whether program is still running
-            float: Time stamp of previous frame in seconds
         """
+        #try:
+        self.render = render
+
         # Calculates d, distance from first goal, and removes the goal from the list if d is less than initializations.SIM_MULTIPLE_GOALS_ACCURACY
         d = functions.distance(
             self.particle_loc[0],
@@ -951,13 +952,13 @@ class Simulator:
             self.flag_edit_particle_mouse,
             coil_vals,
             self.coil_locs,
-            prev_time,
+            self.prev_time,
         )
 
         # Sleeps to adhere to framerate
         if self.framerate != None:
-            time.sleep(max(0, (1 / self.framerate) - (time.time() - prev_time)))
-        prev_time = new_time
+            time.sleep(max(0, (1 / self.framerate) - (time.time() - self.prev_time)))
+        self.prev_time = new_time
 
         coil_vals = functions.limit_coil_vals(coil_vals)
 
@@ -968,6 +969,9 @@ class Simulator:
                 self.renderInit()
 
             running = self.eventHandler()
+
+            if not running:
+                self.close()
 
         else:
             if self.window != None:
@@ -1008,11 +1012,19 @@ class Simulator:
             else:
                 self.goal_locs = [pos]
 
-        return running, prev_time
+        #except:
+        #    self.close()
 
-    def getState(self):
+    def getState(self, n_obs = 1):
+        particle_locs = [self.particle_loc.copy()]
+
+        while len(particle_locs) < n_obs:
+            self.step(self.coil_vals, self.render)
+
+            particle_locs.append(self.particle_loc.copy())
+
         return (
-            self.particle_loc.copy(),
+            particle_locs.copy(),
             self.goal_locs[0].copy(),
             self.coil_vals.copy(),
             self.coil_locs.copy(),
@@ -1028,7 +1040,7 @@ class Simulator:
         """
 
         if goal_reset:
-            factor = 0.8 * 3/4
+            factor = 0.8 * 3 / 4
             # Attributes to hold the particle and goal locations
             self.goal_locs = [
                 list(
@@ -1102,23 +1114,23 @@ class Simulator:
 
         self.video_num = 1  # Number of video so that each video has a unique name
 
+        self.prev_time = time.time()
+
     def close(self):
         pygame.display.quit()
         pygame.quit()
+
+        sys.exit()
 
 
 if __name__ == "__main__":
     sim = Simulator(60)
 
-    running = True
-    prev_time = time.time()
-    while running:
-        particle_loc, goal_locs, coil_vals, coil_locs = sim.getState()
+    while True:
+        particle_locs, goal_locs, coil_vals, coil_locs = sim.getState()
 
         coil_vals = control_algorithm.get_coil_vals(
-            particle_loc, goal_locs, coil_vals, coil_locs
+            particle_locs[0], goal_locs, coil_vals, coil_locs
         )
 
-        running, prev_time = sim.step(running, prev_time, coil_vals, True)
-
-    pygame.quit()
+        sim.step(coil_vals, True)

@@ -4,7 +4,7 @@ import numpy as np
 
 # Load the CSV file
 # Replace 'data.csv' with the path to your CSV file
-file_path = 'src\FM3_MicRo\control_models\ppo_default_parameters_768000_steps_fm_rewards\log.csv'
+file_path = 'src/FM3_MicRo/control_models/2024-12-18_17-11-50_delta_r_10000-steps_10-obs/log.csv'
 data = pd.read_csv(file_path)
 
 # Extract the Episode and Ratio columns
@@ -28,8 +28,8 @@ trendline = p(episodes)
 
 # Plot the data
 plt.figure(figsize=(10, 6))
-plt.scatter(episodes, ratios, label='Data Points', color='blue', alpha=0.7)
-plt.plot(episodes, trendline, label='Trend Line', color='red', linewidth=2)
+plt.plot(episodes, ratios, label='Data Points', color='blue', alpha=0.7)
+plt.plot(episodes, trendline, label='Trend Line', color='black')
 
 # Add labels, title, and legend
 plt.xlabel('Episode', fontsize=12)

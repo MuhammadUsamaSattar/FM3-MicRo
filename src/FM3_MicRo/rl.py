@@ -7,7 +7,7 @@ import gymnasium_env
 import matplotlib.pyplot as plt
 import numpy as np
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 
@@ -279,60 +279,78 @@ class DistancePlotCallback(BaseCallback):
 if __name__ == "__main__":
     exc_options = {"train": "train", "test": "test"}
     reward_options = {
-        "foundation_model": "foundation_model",
-        "euclidean_distance": "euclidean_distance",
-        "test_euclidean_distance": "test_euclidean_distance",
+        "llm": "llm",
+        "euclidean": "euclidean",
+        "delta_r": "delta_r",
     }
+    train_render_options = {"rgb_array": "rgb_array", "human": "human"}
 
     ### Main Parameter ###
     exc = exc_options["train"]
+    n_obs = 10
+    particle_rest = True
+    goal_reset = False
 
     ### Train Parameters ###
     total_timesteps = (
-        102_400  # Change to your desired total timesteps (In fm, 167_936 take 15h)
+        1_0_000  # Change to your desired total timesteps (In fm, 143_360 take 16h)
     )
-    train_render_mode = "human"
+    train_render_mode = train_render_options["rgb_array"]
     test_after_train = True
 
     # Foundation Model Train Parameters #
-    reward_type = reward_options["euclidean_distance"]
+    reward_type = reward_options["delta_r"]
     prompt_file = "llm_prompt_continuous_rewards_zero_shot.yaml"
 
     train_render_fps = None
     train_episode_time_limit = 5
 
     ### Test Parameter ###
-    test_model_path = "src/FM3_MicRo/control_models/saved models/foundation_model_binary_rewards_zero_shot_167936-steps_2024-12-16_17-54-49/model"
+    test_model_path = "src/FM3_MicRo/control_models/euclidean_distance_1000000-steps_2024-12-18_13-14-16/model"
 
     test_render_fps = 120
     test_episode_time_limit = 5
 
     kwarg_options = {
-        "foundation_model": {
+        "llm": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
+            "n_obs": n_obs,
             "model_id": "PATH_QWEN_14B",
-            "model_type": "llm",
+            "reward_type": "llm",
             "model_quant": "4b",
             "context_prompt_file": prompt_file,
             "verbose": False,
-            "particle_reset": True,
-            "goal_reset": False,
+            "particle_reset": particle_rest,
+            "goal_reset": goal_reset,
         },
-        "euclidean_distance": {
+        "euclidean": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
-            "particle_reset": True,
-            "goal_reset": False,
+            "n_obs": n_obs,
+            "reward_type": "euclidean",
+            "particle_reset": particle_rest,
+            "goal_reset": goal_reset,
+        },
+        "delta_r": {
+            "render_mode": train_render_mode,
+            "render_fps": train_render_fps,
+            "episode_time_limit": train_episode_time_limit,
+            "n_obs": n_obs,
+            "reward_type": "delta_r",
+            "particle_reset": particle_rest,
+            "goal_reset": goal_reset,
         },
         "test_euclidean_distance": {
             "render_mode": "human",
             "render_fps": test_render_fps,
             "episode_time_limit": test_episode_time_limit,
-            "particle_reset": True,
-            "goal_reset": False,
+            "n_obs": n_obs,
+            "reward_type": "delta_r",
+            "particle_reset": particle_rest,
+            "goal_reset": goal_reset,
         },
     }
 
@@ -340,10 +358,10 @@ if __name__ == "__main__":
         kwargs = kwarg_options[reward_type]
 
         # Define the directory for saving model, plot, and logs
-        if reward_type == "foundation_model":
-            save_dir = f"src/FM3_MicRo/control_models/{reward_type}_{prompt_file[11:-5]}_{total_timesteps}-steps_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-        else:
-            save_dir = f"src/FM3_MicRo/control_models/{reward_type}_{total_timesteps}-steps_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        if reward_type == "llm":
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{prompt_file[11:-5]}_{total_timesteps}-steps_{n_obs}-obs"
+        elif reward_type == "euclidean" or reward_type == "delta_r":
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{n_obs}-obs"
 
         os.makedirs(save_dir, exist_ok=True)  # Create directory if it doesn't exist
 
@@ -353,6 +371,13 @@ if __name__ == "__main__":
             vec_env, filename=None
         )  # Use Monitor to log episode data
         vec_env = DummyVecEnv([lambda: monitored_env])
+
+        # Eval environment
+        eval_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
+        monitored_eval_env = Monitor(
+            eval_env, filename=None
+        )  # Use Monitor to log episode data
+        eval_env = DummyVecEnv([lambda: monitored_eval_env])
 
         n_steps = 2048
         if total_timesteps < 2048:
@@ -364,11 +389,17 @@ if __name__ == "__main__":
         )
         # Create an instance of the custom callback
         distance_callback = DistancePlotCallback(log_dir=save_dir)
+        eval_callback = EvalCallback(
+            eval_env,
+            log_path=save_dir,
+            deterministic=True,
+            eval_freq=total_timesteps//1,
+        )
 
         # Train the model with the callback
         model.learn(
             total_timesteps=total_timesteps,
-            callback=distance_callback,
+            callback=[distance_callback, eval_callback],
             progress_bar=True,
         )
 

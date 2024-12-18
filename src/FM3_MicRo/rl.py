@@ -23,7 +23,7 @@ class DistancePlotCallback(BaseCallback):
         super(DistancePlotCallback, self).__init__()
         """Initializes class with attributes.
         """
-        
+
         self.distances = []  # Store distances
         self.starting_distances = []  # Store starting distances for each episode
         self.episode_distances = []  # Store distances for the current episode
@@ -144,7 +144,7 @@ class DistancePlotCallback(BaseCallback):
 
         Returns:
             bool: False value terminates training early.
-        """        
+        """
 
         # Access the environment's info dictionary to track distances
         infos = self.locals["infos"]
@@ -284,38 +284,55 @@ if __name__ == "__main__":
         "test_euclidean_distance": "test_euclidean_distance",
     }
 
-    total_timesteps = 204_80  # Change to your desired total timesteps
-
+    ### Main Parameter ###
     exc = exc_options["train"]
-    reward_type = reward_options["euclidean_distance"]
+
+    ### Train Parameters ###
+    total_timesteps = (
+        102_400  # Change to your desired total timesteps (In fm, 167_936 take 15h)
+    )
+    train_render_mode = "human"
     test_after_train = True
+
+    # Foundation Model Train Parameters #
+    reward_type = reward_options["euclidean_distance"]
+    prompt_file = "llm_prompt_continuous_rewards_zero_shot.yaml"
 
     train_render_fps = None
     train_episode_time_limit = 5
+
+    ### Test Parameter ###
+    test_model_path = "src/FM3_MicRo/control_models/saved models/foundation_model_binary_rewards_zero_shot_167936-steps_2024-12-16_17-54-49/model"
 
     test_render_fps = 120
     test_episode_time_limit = 5
 
     kwarg_options = {
         "foundation_model": {
-            "render_mode": "rgb_array",
+            "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
             "model_id": "PATH_QWEN_14B",
             "model_type": "llm",
             "model_quant": "4b",
-            "context_prompt_file": "llm_prompt_zero_shot.yaml",
+            "context_prompt_file": prompt_file,
             "verbose": False,
+            "particle_reset": True,
+            "goal_reset": False,
         },
         "euclidean_distance": {
-            "render_mode": "rgb_array",
+            "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
+            "particle_reset": True,
+            "goal_reset": False,
         },
         "test_euclidean_distance": {
             "render_mode": "human",
             "render_fps": test_render_fps,
             "episode_time_limit": test_episode_time_limit,
+            "particle_reset": True,
+            "goal_reset": False,
         },
     }
 
@@ -323,7 +340,11 @@ if __name__ == "__main__":
         kwargs = kwarg_options[reward_type]
 
         # Define the directory for saving model, plot, and logs
-        save_dir = f"src/FM3_MicRo/control_models/ppo_default_parameters_{total_timesteps}_steps_fm_rewards_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        if reward_type == "foundation_model":
+            save_dir = f"src/FM3_MicRo/control_models/{reward_type}_{prompt_file[11:-5]}_{total_timesteps}-steps_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        else:
+            save_dir = f"src/FM3_MicRo/control_models/{reward_type}_{total_timesteps}-steps_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+
         os.makedirs(save_dir, exist_ok=True)  # Create directory if it doesn't exist
 
         # Single environment
@@ -352,9 +373,9 @@ if __name__ == "__main__":
         )
 
         # Save the model
-        model_file = os.path.join(save_dir, f"model")
-        model.save(model_file)
-        print(f"Model saved as {model_file}")
+        test_model_path = os.path.join(save_dir, f"model")
+        model.save(test_model_path)
+        print(f"Model saved as {test_model_path}")
 
     if test_after_train or exc == "test":
         kwargs = kwarg_options["test_euclidean_distance"]
@@ -369,7 +390,7 @@ if __name__ == "__main__":
 
         # Load and reuse the model:
         model = PPO.load(
-            "src/FM3_MicRo/control_models/ppo_default_parameters_307200_steps_2024-12-12_00-00-00/model.zip",
+            test_model_path,
             env=vec_env,
         )
 

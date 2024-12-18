@@ -3,7 +3,7 @@ prompt: "You are provided description of a 2D workspace where location of
   co-ordinate while 'y' is the y-axis co-ordinate. The center of the workspace 
   is at (0,0) and the top-right corner is at (360,360).\n
   \n
-  You need to critique the movement of the particle. You will be provided with 
+  You need to critique the actions of the particle. You will be provided with 
   the goal position, the previous position of the particle and the new 
   position of the particle. If the particle moves in the direction of the 
   goal, you assign a score of 1. If the particle either moves away from the 

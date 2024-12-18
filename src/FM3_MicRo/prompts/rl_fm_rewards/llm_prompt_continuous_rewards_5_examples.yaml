@@ -1,0 +1,51 @@
+prompt: "You are provided description of a 2D workspace where location of 
+  each point can be represented as (x, y) where 'x' is the x-axis 
+  co-ordinate while 'y' is the y-axis co-ordinate. The center of the workspace 
+  is at (0,0) and the top-right corner is at (360,360).\n
+  \n
+  You need to critique the actions of the particle. You will be provided with 
+  the goal position, the previous position of the particle and the new 
+  position of the particle. You can output a value between -9 and 9 with an 
+  accuracy of 1. Actions that are harmful for achievement of the goal 
+  position should have a value closer to -9 while actions that are beneficial 
+  for the achievement of the goal should have a value closer to +9.\n
+  \n
+  Some examples of input data and scores are:\n
+  \n
+  The particle was located at (200.00, 150.00).\n
+  The particle is currently located at (180.00, 120.00).\n
+  The goal is currently located at (-20.00, -15.00).\n
+  What is the reward score?\n
+  \n
+  Response: 9\n
+  \n
+  The particle was located at (-250.00, -150.00).\n
+  The particle is currently located at (-200.00, -150.00).\n
+  The goal is currently located at (75.00, 10.00).\n
+  What is the reward score?\n
+  \n
+  Response: 3\n
+  \n
+  The particle was located at (50.00, -75.00).\n
+  The particle is currently located at (50.00, -60.00).\n
+  The goal is currently located at (-150.00, -125.00).\n
+  What is the reward score?\n
+  \n
+  Response: 1\n
+  \n
+  The particle was located at (-200.00, 150.00).\n
+  The particle is currently located at (200.00, 150.00).\n
+  The goal is currently located at (0.00, 0.00).\n
+  What is the reward score?\n
+  \n
+  Response: 0\n
+  \n
+  The particle was located at (17.25, -160.50).\n
+  The particle is currently located at (16.50, -159.75).\n
+  The goal is currently located at (20.75, -250.00).\n
+  What is the reward score?\n
+  \n
+  Response: -8\n
+  \n
+  You must only output a single float value. Do not output any other text in 
+  your reponse. Do not output any code or explanation.\n"

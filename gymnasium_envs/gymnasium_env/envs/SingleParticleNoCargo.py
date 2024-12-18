@@ -33,6 +33,8 @@ class SingleParticleNoCargo(gym.Env):
         model_quant: str | None = None,
         context_prompt_file: str | None = None,
         verbose: bool = False,
+        particle_reset: bool = True,
+        goal_reset: bool = True,
     ):
         """Initializes the environment.
 
@@ -45,6 +47,8 @@ class SingleParticleNoCargo(gym.Env):
             model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
             context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
             verbose (bool, optional): Sets verbosity mode. Defaults to False.
+            particle_reset (bool, optional): Resets particle location on start of episode. Defaults to True.
+            goal_reset (bool, optional): Resets goal location on start of episode. Defaults to True.
         """
 
         self.metadata["render_fps"] = render_fps
@@ -103,6 +107,9 @@ class SingleParticleNoCargo(gym.Env):
 
             self._foundation_model_init_(context_prompt_file)
 
+        self.particle_reset = particle_reset
+        self.goal_reset = goal_reset
+
     def reset(
         self,
         seed: int | None = None,
@@ -121,7 +128,7 @@ class SingleParticleNoCargo(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        self.simulator.resetAtRandomLocs(seed)
+        self.simulator.resetAtRandomLocs(seed, self.particle_reset, self.goal_reset)
         self.obs = self._get_obs()
         self.prev_obs = self.obs.copy()
         info = self._get_info()
@@ -237,7 +244,7 @@ class SingleParticleNoCargo(gym.Env):
             model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
             context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
         """
-        self.metadata['render_fps'] = render_fps
+        self.metadata["render_fps"] = render_fps
 
         self.model_id = model_id
         self.model_type = model_type
@@ -358,37 +365,24 @@ class SingleParticleNoCargo(gym.Env):
                         tokens=1000,
                     )
 
-                output = int(output)
+                try:
+                    output = float(output)
+                except ValueError:
+                    output = float(output[:output.find("\n")])
 
-                if (
-                    (
-                        functions.distance(
-                            prev_particle_loc[0],
-                            prev_particle_loc[1],
-                            goal_loc[0],
-                            goal_loc[1],
-                        )
-                        - functions.distance(
-                            particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
-                        )
-                    )
-                    > 0
-                    and output == 1
-                ) or (
-                    (
-                        functions.distance(
-                            prev_particle_loc[0],
-                            prev_particle_loc[1],
-                            goal_loc[0],
-                            goal_loc[1],
-                        )
-                        - functions.distance(
-                            particle_loc[0], particle_loc[1], goal_loc[0], goal_loc[1]
-                        )
-                    )
-                    <= 0
-                    and output == 0
-                ):
+                delta_r = functions.distance(
+                    prev_particle_loc[0],
+                    prev_particle_loc[1],
+                    goal_loc[0],
+                    goal_loc[1],
+                ) - functions.distance(
+                    particle_loc[0],
+                    particle_loc[1],
+                    goal_loc[0],
+                    goal_loc[1],
+                )
+
+                if (delta_r > 0 and output > 0) or (delta_r <= 0 and output <= 0):
                     self.record["correct"] += 1
                 else:
                     self.record["incorrect"] += 1
@@ -396,6 +390,7 @@ class SingleParticleNoCargo(gym.Env):
                 if self.verbose:
                     print(f"{txt}\n")
                     print(f"{output}\n")
+                    print(f"detla r: {delta_r}")
                     print(f"{self.record}\n")
                     print(
                         f"Accuracy: {(self.record['correct'] / (self.record['correct']+self.record['incorrect'])):.2f}\n"
@@ -410,5 +405,19 @@ class SingleParticleNoCargo(gym.Env):
 
             except Exception as e:
                 print(f"Error calculating coil values: {e}")
+
+        if (
+            functions.distance(
+                particle_loc[0],
+                particle_loc[1],
+                goal_loc[0],
+                goal_loc[1],
+            )
+            < initializations.SIM_MULTIPLE_GOALS_ACCURACY
+        ):
+            info["reward"] += 1e5
+
+        if self.verbose:
+            print(f"Total reward: {info['reward']}\n")
 
         return info

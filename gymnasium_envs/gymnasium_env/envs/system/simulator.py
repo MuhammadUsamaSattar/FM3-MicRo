@@ -956,7 +956,7 @@ class Simulator:
 
         # Sleeps to adhere to framerate
         if self.framerate != None:
-            time.sleep(max(0, (1/self.framerate) - (time.time()-prev_time)))
+            time.sleep(max(0, (1 / self.framerate) - (time.time() - prev_time)))
         prev_time = new_time
 
         coil_vals = functions.limit_coil_vals(coil_vals)
@@ -1018,35 +1018,18 @@ class Simulator:
             self.coil_locs.copy(),
         )
 
-    def resetAtRandomLocs(self, seed):
+    def resetAtRandomLocs(self, seed, particle_reset, goal_reset):
         """Resets the game by resetting all values and placing the partcile and goal at random locations.
 
         Args:
-            seed : Seed value that determines the pseudo-random number
+            seed : Seed value that determines the pseudo-random number.
+            particle_reset : Resets particle location on start of episode.
+            goal_reset : Resets goal location on start of episode.
         """
-        factor = 1 / math.sqrt(2)
-        # Attributes to hold the particle and goal locations
-        self.particle_loc = list(
-            np.random.randint(
-                -initializations.SIM_SOL_CIRCLE_RAD * factor,
-                initializations.SIM_SOL_CIRCLE_RAD * factor,
-                size=2,
-                dtype=int,
-            )
-        )
 
-        self.goal_locs[0] = self.particle_loc.copy()
-        factor *= 3 / 4
-
-        while (
-            functions.distance(
-                self.particle_loc[0],
-                self.particle_loc[1],
-                self.goal_locs[0][0],
-                self.goal_locs[0][1],
-            )
-            < 200
-        ):
+        if goal_reset:
+            factor = 0.8 * 3/4
+            # Attributes to hold the particle and goal locations
             self.goal_locs = [
                 list(
                     np.random.randint(
@@ -1057,6 +1040,22 @@ class Simulator:
                     )
                 )
             ]
+
+        if particle_reset:
+            self.particle_loc = self.goal_locs[0].copy()
+            factor = 0.8
+
+            self.particle_loc = list(
+                np.random.randint(
+                    200,
+                    initializations.SIM_SOL_CIRCLE_RAD * factor,
+                    size=2,
+                    dtype=int,
+                )
+            )
+
+            self.particle_loc[0] *= np.random.choice([-1, 1])
+            self.particle_loc[1] *= np.random.choice([-1, 1])
 
         self.particle_vel = [0, 0]  # Attribute to hold the particle velocity
 

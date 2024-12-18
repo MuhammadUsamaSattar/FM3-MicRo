@@ -1,3 +1,5 @@
+- **d7f44c1:** Implemented both standard reward and foundation model
+- **ad6a278:** Added data logging and plot generation in rl_fm_rewards.py
 - **1ea3517:** Added set_reward_params() to SingleParticleNoCargo class which allows switching between FM based rewards and Euclidian distance based rewards for faster frame times during model testing
 - **6a6ddfe:** Added time logging to SingleParticleNoCargo class via 'verbose' parameter
 - **d22f07f:** RL with FM rewards works in sequential computing

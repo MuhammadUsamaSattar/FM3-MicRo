@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 from datetime import datetime
@@ -11,6 +12,8 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+from data_plotting_scripts.npz_plotter import NPZPlotter
+
 
 class DistancePlotCallback(BaseCallback):
     """
@@ -19,7 +22,7 @@ class DistancePlotCallback(BaseCallback):
     logger's CSVOutputFormat for logging.
     """
 
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, text_verbosity):
         super(DistancePlotCallback, self).__init__()
         """Initializes class with attributes.
         """
@@ -36,6 +39,7 @@ class DistancePlotCallback(BaseCallback):
         self.iteration_counter = 0  # Counter to track iterations (rollouts)
         self.prev_total_time_steps_rollout = 0
         self.prev_total_time_steps_episode = 0
+        self.text_verbosity = text_verbosity
 
     def _on_training_start(self) -> None:
         # Create the log directory if it doesn't exist
@@ -45,8 +49,8 @@ class DistancePlotCallback(BaseCallback):
         self.start_time = time.time()
 
         # Initialize the CSV file paths for logging
-        self.csv_file = os.path.join(self.log_dir, "log.csv")
-        self.diagnostics_file = os.path.join(self.log_dir, "diagnostics.csv")
+        self.csv_file = os.path.join(self.log_dir, "per_episode_log.csv")
+        self.diagnostics_file = os.path.join(self.log_dir, "per_iteration_log.csv")
 
         # Write headers for log.csv (episode-level log)
         with open(self.csv_file, mode="w", newline="") as file:
@@ -243,6 +247,7 @@ class DistancePlotCallback(BaseCallback):
 
     def _on_training_end(self) -> None:
         # Plot ratios over episodes
+        plt.close("all")
         plt.figure(figsize=(10, 6))
         plt.plot(
             self.episodes,
@@ -270,86 +275,230 @@ class DistancePlotCallback(BaseCallback):
         plt.grid()
 
         # Save the plot
-        plot_file = os.path.join(self.log_dir, "plot.png")
+        plot_file = os.path.join(self.log_dir, "r_ratio_plot.png")
         plt.savefig(plot_file)
-        print(f"Plot saved as {plot_file}")
-        plt.show()
+
+        if self.text_verbosity:
+            print(f"Plot saved as {plot_file}")
+
+        # plt.show()
+
+
+def parse_arguments():
+    # Define options as lists
+    exc_options = ["train", "test"]
+    reward_options = ["llm", "euclidean", "delta_r"]
+    train_render_mode_options = ["rgb_array", "human"]
+
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Train or test a PPO model in a magnetic manipulation environment."
+    )
+
+    # Add optional arguments
+    parser.add_argument(
+        "--exc",
+        type=str,
+        choices=exc_options,
+        default="train",
+        help="Execution mode: 'train' or 'test'. Default: 'train'.",
+    )
+    parser.add_argument(
+        "--num-obs", type=int, default=5, help="Number of observations. Default: 5."
+    )
+    parser.add_argument(
+        "--particle-reset",
+        type=bool,
+        default=True,
+        help="Whether to reset particles. Default: True.",
+    )
+    parser.add_argument(
+        "--goal-reset",
+        type=bool,
+        default=False,
+        help="Whether to reset goals. Default: False.",
+    )
+    parser.add_argument(
+        "--reward-type",
+        type=str,
+        choices=reward_options,
+        default="delta_r",
+        help="Reward type: 'llm', 'euclidean', or 'delta_r'. Default: 'delta_r'.",
+    )
+    parser.add_argument(
+        "--rollout-steps",
+        type=int,
+        default=2048,
+        help="Rollout steps per update. Default: 2048.",
+    )
+    parser.add_argument(
+        "--test-after-train",
+        type=bool,
+        default=False,
+        help="Whether to test the model after training. Default: False.",
+    )
+    parser.add_argument(
+        "--train-render-mode",
+        type=str,
+        choices=train_render_mode_options,
+        default="rgb_array",
+        help="Rendering mode during training: 'rgb_array' or 'human'. Default: 'rgb_array'.",
+    )
+    parser.add_argument(
+        "--train-render-fps",
+        type=int,
+        default=None,
+        help="Frames per second during training rendering. Default: None.",
+    )
+    parser.add_argument(
+        "--train-episode-time-limit",
+        type=float,
+        default=2.5,
+        help="Time limit for episodes during training. Default: 2.5 seconds.",
+    )
+    parser.add_argument(
+        "--prompt-file",
+        type=str,
+        default="llm_prompt_continuous_rewards_zero_shot.yaml",
+        help="Prompt file for foundation model training. Default: 'llm_prompt_continuous_rewards_zero_shot.yaml'.",
+    )
+    parser.add_argument(
+        "--test-model-path",
+        type=str,
+        default="src/FM3_MicRo/control_models/2024-12-19_18-02-20_delta_r_5000000-steps_5-obs/model",
+        help="Path to the model used during testing. Default: [predefined path].",
+    )
+    parser.add_argument(
+        "--test-render-fps",
+        type=int,
+        default=120,
+        help="Frames per second during testing rendering. Default: 120.",
+    )
+    parser.add_argument(
+        "--test-episode-time-limit",
+        type=float,
+        default=5,
+        help="Time limit for episodes during testing. Default: 5 seconds.",
+    )
+    parser.add_argument(
+        "--num-eval",
+        type=int,
+        default=10,
+        help="Number of evaluations to run to track performance of model over time. Default: 10.",
+    )
+    parser.add_argument(
+        "--text-verbosity",
+        type=bool,
+        default=False,
+        help="Verbosity of textual outputs. Default: False.",
+    )
+    parser.add_argument(
+        "--train-verbosity",
+        type=bool,
+        default=True,
+        help="Verbosity of training parameters. Default: True.",
+    )
+    parser.add_argument(
+        "--show-plots",
+        type=bool,
+        default=False,
+        help="Shows r_ratio and reward plots. Default: False.",
+    )
+    parser.add_argument(
+        "total_timesteps",
+        type=int,
+        help="Total time steps for PPO training.",
+    )
+    args = parser.parse_args()
+
+    ## Parse known arguments and capture trailing positional arguments
+    # args, unknown = parser.parse_known_args()
+    #
+    ## Extract the positional `total_timesteps`
+    # if len(unknown) != 1:
+    #    parser.error(
+    #        "You must provide a single positional argument for total_timesteps."
+    #    )
+    # try:
+    #    args.total_timesteps = int(unknown[0])
+    # except ValueError:
+    #    parser.error("total_timesteps must be an integer.")
+
+    # Validate arguments
+    if args.total_timesteps < args.rollout_steps:
+        raise ValueError(
+            "Total timesteps must be greater than or equal to rollout_steps."
+        )
+
+    return args
 
 
 if __name__ == "__main__":
-    exc_options = {"train": "train", "test": "test"}
-    reward_options = {
-        "llm": "llm",
-        "euclidean": "euclidean",
-        "delta_r": "delta_r",
-    }
-    train_render_options = {"rgb_array": "rgb_array", "human": "human"}
+    args = parse_arguments()
 
-    ### Main Parameter ###
-    exc = exc_options["train"]
-    n_obs = 10
-    particle_rest = True
-    goal_reset = False
+    ########################################################################################################################
+    # Extract parsed arguments
+    exc = args.exc
+    num_obs = args.num_obs
+    particle_reset = args.particle_reset
+    goal_reset = args.goal_reset
+    reward_type = args.reward_type
+    total_timesteps = args.total_timesteps
+    rollout_steps = args.rollout_steps
+    test_after_train = args.test_after_train
+    train_render_mode = args.train_render_mode
+    train_render_fps = args.train_render_fps
+    train_episode_time_limit = args.train_episode_time_limit
+    prompt_file = args.prompt_file
+    test_model_path = args.test_model_path
+    test_render_fps = args.test_render_fps * num_obs
+    test_episode_time_limit = args.test_episode_time_limit
+    num_eval = args.num_eval
+    text_verbosity = args.text_verbosity
+    train_verbosity = args.train_verbosity
+    show_plots = args.show_plots
+    ########################################################################################################################
 
-    ### Train Parameters ###
-    total_timesteps = (
-        1_0_000  # Change to your desired total timesteps (In fm, 143_360 take 16h)
-    )
-    train_render_mode = train_render_options["rgb_array"]
-    test_after_train = True
-
-    # Foundation Model Train Parameters #
-    reward_type = reward_options["delta_r"]
-    prompt_file = "llm_prompt_continuous_rewards_zero_shot.yaml"
-
-    train_render_fps = None
-    train_episode_time_limit = 5
-
-    ### Test Parameter ###
-    test_model_path = "src/FM3_MicRo/control_models/euclidean_distance_1000000-steps_2024-12-18_13-14-16/model"
-
-    test_render_fps = 120
-    test_episode_time_limit = 5
-
+    # Prepare environment keyword arguments
     kwarg_options = {
         "llm": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
-            "n_obs": n_obs,
+            "n_obs": num_obs,
             "model_id": "PATH_QWEN_14B",
             "reward_type": "llm",
             "model_quant": "4b",
             "context_prompt_file": prompt_file,
             "verbose": False,
-            "particle_reset": particle_rest,
+            "particle_reset": particle_reset,
             "goal_reset": goal_reset,
         },
         "euclidean": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
-            "n_obs": n_obs,
+            "n_obs": num_obs,
             "reward_type": "euclidean",
-            "particle_reset": particle_rest,
+            "particle_reset": particle_reset,
             "goal_reset": goal_reset,
         },
         "delta_r": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
-            "n_obs": n_obs,
+            "n_obs": num_obs,
             "reward_type": "delta_r",
-            "particle_reset": particle_rest,
+            "particle_reset": particle_reset,
             "goal_reset": goal_reset,
         },
         "test_euclidean_distance": {
             "render_mode": "human",
             "render_fps": test_render_fps,
             "episode_time_limit": test_episode_time_limit,
-            "n_obs": n_obs,
+            "n_obs": num_obs,
             "reward_type": "delta_r",
-            "particle_reset": particle_rest,
+            "particle_reset": particle_reset,
             "goal_reset": goal_reset,
         },
     }
@@ -359,75 +508,79 @@ if __name__ == "__main__":
 
         # Define the directory for saving model, plot, and logs
         if reward_type == "llm":
-            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{prompt_file[11:-5]}_{total_timesteps}-steps_{n_obs}-obs"
-        elif reward_type == "euclidean" or reward_type == "delta_r":
-            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{n_obs}-obs"
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{prompt_file[11:-5]}_{total_timesteps}-steps_{num_obs}-obs"
+        elif reward_type in ["euclidean", "delta_r"]:
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{num_obs}-obs"
 
         os.makedirs(save_dir, exist_ok=True)  # Create directory if it doesn't exist
 
         # Single environment
         vec_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
-        monitored_env = Monitor(
-            vec_env, filename=None
-        )  # Use Monitor to log episode data
+        monitored_env = Monitor(vec_env, filename=None)
         vec_env = DummyVecEnv([lambda: monitored_env])
 
         # Eval environment
         eval_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
-        monitored_eval_env = Monitor(
-            eval_env, filename=None
-        )  # Use Monitor to log episode data
+        monitored_eval_env = Monitor(eval_env, filename=None)
         eval_env = DummyVecEnv([lambda: monitored_eval_env])
-
-        n_steps = 2048
-        if total_timesteps < 2048:
-            n_steps = total_timesteps
 
         # Define the model
         model = PPO(
-            "MultiInputPolicy", vec_env, verbose=1, device="cpu", n_steps=n_steps
+            "MultiInputPolicy",
+            vec_env,
+            verbose=train_verbosity,
+            device="cpu",
+            n_steps=rollout_steps,
         )
-        # Create an instance of the custom callback
-        distance_callback = DistancePlotCallback(log_dir=save_dir)
+
+        # Create callbacks
+        distance_callback = DistancePlotCallback(
+            log_dir=save_dir, text_verbosity=text_verbosity
+        )
         eval_callback = EvalCallback(
             eval_env,
             log_path=save_dir,
             deterministic=True,
-            eval_freq=total_timesteps//1,
+            eval_freq=total_timesteps // num_eval,
         )
 
-        # Train the model with the callback
+        # Train the model
         model.learn(
             total_timesteps=total_timesteps,
             callback=[distance_callback, eval_callback],
             progress_bar=True,
         )
 
+        # Save evaluation results and plot
+        npz_plotter = NPZPlotter(
+            npz_file=os.path.join(save_dir, "evaluations.npz"),
+            text_verbosity=text_verbosity,
+        )
+
+        if text_verbosity:
+            npz_plotter.print()
+
+        npz_plotter.save()
+
         # Save the model
-        test_model_path = os.path.join(save_dir, f"model")
+        test_model_path = os.path.join(save_dir, "model")
         model.save(test_model_path)
-        print(f"Model saved as {test_model_path}")
+        if text_verbosity:
+            print(f"Model saved as {test_model_path}")
 
     if test_after_train or exc == "test":
         kwargs = kwarg_options["test_euclidean_distance"]
 
         vec_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
-        monitored_env = Monitor(
-            vec_env, filename=None
-        )  # Use Monitor to log episode data
+        monitored_env = Monitor(vec_env, filename=None)
         vec_env = DummyVecEnv([lambda: monitored_env])
 
-        model = PPO("MultiInputPolicy", vec_env, verbose=1, device="cpu")
-
-        # Load and reuse the model:
-        model = PPO.load(
-            test_model_path,
-            env=vec_env,
-        )
+        # Load the model
+        model = PPO.load(test_model_path, env=vec_env)
 
         obs = vec_env.reset()
 
         while True:
-            action, _states = model.predict(obs)
+            action, _states = model.predict(obs, deterministic=True)
             obs, rewards, dones, info = vec_env.step(action)
             vec_env.render("human")

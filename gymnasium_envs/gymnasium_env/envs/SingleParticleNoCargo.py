@@ -114,9 +114,15 @@ class SingleParticleNoCargo(gym.Env):
 
             self._foundation_model_init_(context_prompt_file)
 
+        self.time = time.time()
+
         self.particle_reset = particle_reset
         self.goal_reset = goal_reset
         self.n_obs = n_obs
+
+        self.inside_goal_bool = False
+        self.inside_goal_timer = float('inf')
+        self.done = False
 
     def reset(
         self,
@@ -175,25 +181,17 @@ class SingleParticleNoCargo(gym.Env):
             time.time() - self.time_logs["_get_obs()_total"]
         )
 
+        # Determine if the episode is done (if the particle is close to the goal)
+        self.done = self._get_done()
+
         self.time_logs["_get_info()_total"] = time.time()
         info = self._get_info()
         self.time_logs["_get_info()_total"] = (
             time.time() - self.time_logs["_get_info()_total"]
         )
 
-        # Calculate the reward as the negative distance to the goal
+        # Calculate the reward
         reward = info["reward"]
-
-        # Determine if the episode is done (if the particle is close to the goal)
-        done = (
-            functions.distance(
-                self.obs["particle_locs"][-1][0],
-                self.obs["particle_locs"][-1][1],
-                self.obs["goal_loc"][0],
-                self.obs["goal_loc"][1],
-            )
-            < initializations.SIM_MULTIPLE_GOALS_ACCURACY
-        )  # Done if close to goal or simulator is closed
 
         # Determine if the time limit has been reached
         truncated = (time.time() - self.episode_time) > (self.episode_time_limit)
@@ -216,7 +214,7 @@ class SingleParticleNoCargo(gym.Env):
                 f"{'Time elapsed [self.step()_total]':45} : {self.time_logs['self.step()_total']:10.5f}\n"
             )
 
-        return self.obs, reward, done, truncated, info
+        return self.obs, reward, self.done, truncated, info
 
     def render(self):
         """Render the environment. Only handles "rgb_array" option. "human" option is handled through pygame."""
@@ -278,6 +276,37 @@ class SingleParticleNoCargo(gym.Env):
             "particle_locs": np.array(particle_locs, dtype=np.float32),
             "goal_loc": np.array(goal_loc, dtype=np.float32),
         }
+    
+    def _get_done(self) -> bool:
+        """Returns the done status of step.
+
+        Returns:
+            bool: Done boolen value.
+        """
+        done = False
+        if (
+            functions.distance(
+                self.obs["particle_locs"][-1][0],
+                self.obs["particle_locs"][-1][1],
+                self.obs["goal_loc"][0],
+                self.obs["goal_loc"][1],
+            )
+            < initializations.SIM_MULTIPLE_GOALS_ACCURACY
+        ):
+            if not self.inside_goal_bool:
+                self.inside_goal_timer = time.time()
+                self.inside_goal_bool = True
+
+            else:
+                if (time.time() - self.inside_goal_timer) > 1:
+                    done = True
+
+        else:
+            if self.inside_goal_bool:
+                self.inside_goal_bool = False
+                self.inside_goal_timer = float('inf')
+
+        return done
 
     def _foundation_model_init_(
         self,
@@ -354,7 +383,7 @@ class SingleParticleNoCargo(gym.Env):
                         self.obs["goal_loc"][0],
                         self.obs["goal_loc"][1],
                     )
-                ),
+                ) / 10000,
                 "distance": functions.distance(
                     self.obs["particle_locs"][-1][0],
                     self.obs["particle_locs"][-1][1],
@@ -391,9 +420,9 @@ class SingleParticleNoCargo(gym.Env):
                     )
 
                 try:
-                    output = float(output)
+                    output = float(output)/90000
                 except ValueError:
-                    output = float(output[: output.find("\n")])
+                    output = float(output[: output.find("\n")])/90000
 
                 delta_r = functions.distance(
                     self.obs["particle_locs"][0][0],
@@ -443,7 +472,14 @@ class SingleParticleNoCargo(gym.Env):
             )
             < initializations.SIM_MULTIPLE_GOALS_ACCURACY
         ):
-            info["reward"] += 1e5
+            info["reward"] += 0.001
+
+        if self.done:
+            info["reward"] += 1
+
+        new_time = time.time()
+        info["reward"] += (new_time-self.time)/4
+        self.time = new_time
 
         if self.verbose:
             print(f"Total reward: {info['reward']}\n")

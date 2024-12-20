@@ -74,7 +74,7 @@ GUI_COLOR_DIVS = 32  # Number of divisions of each component of color to make. T
 # Simulator Parameters
 ####################################################################################################
 
-SIM_MULTIPLE_GOALS_ACCURACY = 2  # Pixel distance of particle from goal before it is considered to have "reached" the goal
+SIM_MULTIPLE_GOALS_ACCURACY = 10  # Pixel distance of particle from goal before it is considered to have "reached" the goal
 
 # Frame's parameters
 SIM_FRAME_WIDTH = 800

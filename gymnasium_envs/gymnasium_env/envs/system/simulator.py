@@ -456,7 +456,7 @@ class Simulator:
         # If current is 0, the no calculation is done since velocity should be 0
         if I != 0:
             # Predicts the velocity from current and distance and multiplies it with a factor which was determined by trial
-            r_dot_pred = 0.20 * self.model.predict([[abs(I), r]])[0]
+            r_dot_pred = 0.2 * self.model.predict([[abs(I), r]])[0]
 
             # Calculates the components of velocity in x and y directions
             r_dot = [
@@ -473,7 +473,6 @@ class Simulator:
         flag_edit_particle_mouse,
         coil_vals,
         coil_locs,
-        prev_time,
     ):
         """Updates the particle location
 
@@ -483,7 +482,6 @@ class Simulator:
             flag_edit_particle_mouse : Flag to detect if the user is moving the particle through mouse
             coil_vals : List of size 8 containing scaled current values where 0th value corresponds to the Northern coil
             coil_locs : List of size 8 containing coil locations where 0th value corresponds to the Northern coil
-            prev_time : Time stamp of previous frame
 
         Returns:
             list: 1x2 list containing the new particle location
@@ -492,7 +490,6 @@ class Simulator:
         """
         # Only updates location if particle is not being moved by the mouse
         if not flag_edit_particle_mouse:
-            dt = time.time() - prev_time
 
             temp_particle_vel = [0, 0]
 
@@ -523,6 +520,7 @@ class Simulator:
                 + np.random.normal(loc=0.0, scale=3),
             ]
 
+            dt = time.time() - self.prev_time
             # New particle location = current particle location + particle velocity * dt
             particle_loc = [
                 particle_loc[0] + particle_vel[0] * dt,
@@ -557,7 +555,13 @@ class Simulator:
         else:
             particle_vel = [0, 0]
 
-        return particle_loc, particle_vel, time.time()
+        # Sleeps to adhere to framerate
+        new_prev_time = time.time()
+        if self.framerate != None:
+            time.sleep(max(0, (1 / self.framerate) - (new_prev_time - self.prev_time)))
+        self.prev_time = time.time()
+
+        return particle_loc, particle_vel
 
     def getClosetPointInBounds(self, mouse_pos):
         """Gets the closet location from the mouse_pos within the circle traced by the solenoids
@@ -922,7 +926,7 @@ class Simulator:
             coil_vals : List of size 8 containing scaled current values where 0th value corresponds to the Northern coil
             render : Determines if canvas should be rendered
         """
-        #try:
+        self.coil_vals = functions.limit_coil_vals(coil_vals.copy())
         self.render = render
 
         # Calculates d, distance from first goal, and removes the goal from the list if d is less than initializations.SIM_MULTIPLE_GOALS_ACCURACY
@@ -946,21 +950,13 @@ class Simulator:
                 self.particle_loc, coil_vals, self.goal_locs, 1
             )
 
-        self.particle_loc, self.particle_vel, new_time = self.updateParticleLocation(
+        self.particle_loc, self.particle_vel = self.updateParticleLocation(
             self.particle_loc,
             self.particle_vel,
             self.flag_edit_particle_mouse,
-            coil_vals,
+            self.coil_vals,
             self.coil_locs,
-            self.prev_time,
         )
-
-        # Sleeps to adhere to framerate
-        if self.framerate != None:
-            time.sleep(max(0, (1 / self.framerate) - (time.time() - self.prev_time)))
-        self.prev_time = new_time
-
-        coil_vals = functions.limit_coil_vals(coil_vals)
 
         self.canvas.fill((255, 255, 255))
 
@@ -982,7 +978,7 @@ class Simulator:
             self.particle_loc,
             self.goal_locs,
             self.coil_locs,
-            coil_vals,
+            self.coil_vals,
             self.flag_edit_particle_keyboard,
             self.flag_edit_goal_keyboard,
             render,
@@ -1012,14 +1008,19 @@ class Simulator:
             else:
                 self.goal_locs = [pos]
 
-        #except:
-        #    self.close()
-
-    def getState(self, n_obs = 1):
+    def getState(self, n_obs=1):
         particle_locs = [self.particle_loc.copy()]
 
         while len(particle_locs) < n_obs:
-            self.step(self.coil_vals, self.render)
+            self.particle_loc, self.particle_vel = (
+                self.updateParticleLocation(
+                    self.particle_loc,
+                    self.particle_vel,
+                    self.flag_edit_particle_mouse,
+                    self.coil_vals,
+                    self.coil_locs,
+                )
+            )
 
             particle_locs.append(self.particle_loc.copy())
 
@@ -1053,20 +1054,26 @@ class Simulator:
                 )
             ]
 
+        else:
+            self.goal_locs = [[0, 0]]
+
         if particle_reset:
             self.particle_loc = self.goal_locs[0].copy()
             factor = 0.8
 
-            self.particle_loc = list(
-                np.random.randint(
-                    200,
-                    initializations.SIM_SOL_CIRCLE_RAD * factor,
-                    size=2,
-                    dtype=int,
-                )
+            r = np.random.randint(
+                200,
+                initializations.SIM_SOL_CIRCLE_RAD * factor,
+                dtype=int,
             )
 
-            self.particle_loc[0] *= np.random.choice([-1, 1])
+            self.particle_loc[0] = np.random.randint(
+                -r,
+                r,
+                dtype=int,
+            )
+
+            self.particle_loc[1] = math.sqrt((r**2) - (self.particle_loc[0]**2))
             self.particle_loc[1] *= np.random.choice([-1, 1])
 
         self.particle_vel = [0, 0]  # Attribute to hold the particle velocity
@@ -1124,7 +1131,7 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    sim = Simulator(60)
+    sim = Simulator(120)
 
     while True:
         particle_locs, goal_locs, coil_vals, coil_locs = sim.getState()

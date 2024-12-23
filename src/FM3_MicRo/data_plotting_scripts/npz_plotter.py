@@ -87,6 +87,7 @@ class NPZPlotter:
         plt.title("Evaluation Results")
         plt.legend()
         plt.grid()
+        plt.ylim(bottom=min(self.results,0))
 
 
 if __name__ == "__main__":

@@ -310,6 +310,11 @@ def parse_arguments():
         help="Whether to reset goals. Default: False.",
     )
     parser.add_argument(
+        "--llm-id",
+        type=str,
+        help="ID of llm in the .env folder. The variable value in the .env folder must point to local path to the checkpoint of the model.",
+    )
+    parser.add_argument(
         "--num-eval",
         type=int,
         default=10,
@@ -383,6 +388,12 @@ def parse_arguments():
         help="Verbosity of textual outputs. Default: False.",
     )
     parser.add_argument(
+        "--total-timesteps",
+        type=int,
+        default=100000,
+        help="Total time steps for PPO training.",
+    )
+    parser.add_argument(
         "--train-episode-time-limit",
         type=float,
         default=2.5,
@@ -400,12 +411,6 @@ def parse_arguments():
         choices=train_render_mode_options,
         default="rgb_array",
         help="Rendering mode during training: 'rgb_array' or 'human'. Default: 'rgb_array'.",
-    )
-    parser.add_argument(
-        "--total-timesteps",
-        type=int,
-        default=100000,
-        help="Total time steps for PPO training.",
     )
     parser.add_argument(
         "--train-verbosity",
@@ -444,6 +449,7 @@ if __name__ == "__main__":
     # Extract parsed arguments
     exc = args.exc
     goal_reset = args.goal_reset
+    llm_id = args.llm_id
     num_eval = args.num_eval
     num_obs = args.num_obs
     particle_reset = args.particle_reset
@@ -456,10 +462,10 @@ if __name__ == "__main__":
     test_model_path = args.test_model_path
     test_render_fps = args.test_render_fps * num_obs
     text_verbosity = args.text_verbosity
+    total_timesteps = args.total_timesteps
     train_episode_time_limit = args.train_episode_time_limit
     train_render_fps = args.train_render_fps
     train_render_mode = args.train_render_mode
-    total_timesteps = args.total_timesteps
     train_verbosity = args.train_verbosity
     ########################################################################################################################
 
@@ -470,7 +476,7 @@ if __name__ == "__main__":
             "render_fps": train_render_fps,
             "episode_time_limit": train_episode_time_limit,
             "n_obs": num_obs,
-            "model_id": "PATH_QWEN_14B",
+            "model_id": llm_id,
             "reward_type": "llm",
             "model_quant": "4b",
             "context_prompt_file": prompt_file,

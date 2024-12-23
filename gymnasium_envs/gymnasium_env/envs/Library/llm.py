@@ -1,5 +1,6 @@
 import os
 import time
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
 
 import torch
 from dotenv import load_dotenv
@@ -130,8 +131,8 @@ class LLM:
 if __name__ == "__main__":
 
     llm = LLM(
-        model_id="PATH_QWEN_14B",
-        model_quant="4b",
+        model_id="TRITON_LLAMA_8B",
+        model_quant="fp16",
         device="cuda",
         verbose=True,
     )

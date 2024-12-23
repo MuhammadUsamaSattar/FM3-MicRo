@@ -1,3 +1,4 @@
+- **0d490e2:** Modified npz plotter to have minimum value of 0 in y axis
 - **24be5fb:** Sorted command line arguments and added .bat file to run the script with various parameters.
 - **166779d:** Modified rl.py to work with command line arguments.
 - **a5c358f:** Observation space consits of n particle locations rather than one. Added EvalCallback. Moved data plotting scripts to src/FM3_MicRo/data_plotting_scripts.

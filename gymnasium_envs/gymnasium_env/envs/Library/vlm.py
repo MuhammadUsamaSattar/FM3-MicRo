@@ -2,6 +2,7 @@ import os
 import requests
 import time
 from typing import List
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
 
 import torch
 from dotenv import load_dotenv

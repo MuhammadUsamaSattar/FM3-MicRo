@@ -1,3 +1,4 @@
+- **166779d:** Modified rl.py to work with command line arguments.
 - **a5c358f:** Observation space consits of n particle locations rather than one. Added EvalCallback. Moved data plotting scripts to src/FM3_MicRo/data_plotting_scripts.
 - **185e3b4:** Added options for the reinforcement learning file. Added prompts for continous reward values
 - **d7f44c1:** Implemented both standard reward and foundation model

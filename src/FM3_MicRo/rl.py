@@ -304,7 +304,22 @@ def parse_arguments():
         help="Execution mode: 'train' or 'test'. Default: 'train'.",
     )
     parser.add_argument(
-        "--num-obs", type=int, default=5, help="Number of observations. Default: 5."
+        "--goal-reset",
+        type=bool,
+        default=False,
+        help="Whether to reset goals. Default: False.",
+    )
+    parser.add_argument(
+        "--num-eval",
+        type=int,
+        default=10,
+        help="Number of evaluations to run to track performance of model over time. Default: 10.",
+    )
+    parser.add_argument(
+        "--num-obs",
+        type=int,
+        default=5,
+        help="Number of observations. Default: 5.",
     )
     parser.add_argument(
         "--particle-reset",
@@ -313,10 +328,10 @@ def parse_arguments():
         help="Whether to reset particles. Default: True.",
     )
     parser.add_argument(
-        "--goal-reset",
-        type=bool,
-        default=False,
-        help="Whether to reset goals. Default: False.",
+        "--prompt-file",
+        type=str,
+        default="llm_prompt_continuous_rewards_zero_shot.yaml",
+        help="Prompt file for foundation model training. Default: 'llm_prompt_continuous_rewards_zero_shot.yaml'.",
     )
     parser.add_argument(
         "--reward-type",
@@ -332,35 +347,22 @@ def parse_arguments():
         help="Rollout steps per update. Default: 2048.",
     )
     parser.add_argument(
+        "--show-plots",
+        type=bool,
+        default=False,
+        help="Shows r_ratio and reward plots. Default: False.",
+    )
+    parser.add_argument(
         "--test-after-train",
         type=bool,
         default=False,
         help="Whether to test the model after training. Default: False.",
     )
     parser.add_argument(
-        "--train-render-mode",
-        type=str,
-        choices=train_render_mode_options,
-        default="rgb_array",
-        help="Rendering mode during training: 'rgb_array' or 'human'. Default: 'rgb_array'.",
-    )
-    parser.add_argument(
-        "--train-render-fps",
-        type=int,
-        default=None,
-        help="Frames per second during training rendering. Default: None.",
-    )
-    parser.add_argument(
-        "--train-episode-time-limit",
+        "--test-episode-time-limit",
         type=float,
-        default=2.5,
-        help="Time limit for episodes during training. Default: 2.5 seconds.",
-    )
-    parser.add_argument(
-        "--prompt-file",
-        type=str,
-        default="llm_prompt_continuous_rewards_zero_shot.yaml",
-        help="Prompt file for foundation model training. Default: 'llm_prompt_continuous_rewards_zero_shot.yaml'.",
+        default=5,
+        help="Time limit for episodes during testing. Default: 5 seconds.",
     )
     parser.add_argument(
         "--test-model-path",
@@ -375,39 +377,41 @@ def parse_arguments():
         help="Frames per second during testing rendering. Default: 120.",
     )
     parser.add_argument(
-        "--test-episode-time-limit",
-        type=float,
-        default=5,
-        help="Time limit for episodes during testing. Default: 5 seconds.",
-    )
-    parser.add_argument(
-        "--num-eval",
-        type=int,
-        default=10,
-        help="Number of evaluations to run to track performance of model over time. Default: 10.",
-    )
-    parser.add_argument(
         "--text-verbosity",
         type=bool,
         default=False,
         help="Verbosity of textual outputs. Default: False.",
     )
     parser.add_argument(
+        "--train-episode-time-limit",
+        type=float,
+        default=2.5,
+        help="Time limit for episodes during training. Default: 2.5 seconds.",
+    )
+    parser.add_argument(
+        "--train-render-fps",
+        type=int,
+        default=None,
+        help="Frames per second during training rendering. Default: None.",
+    )
+    parser.add_argument(
+        "--train-render-mode",
+        type=str,
+        choices=train_render_mode_options,
+        default="rgb_array",
+        help="Rendering mode during training: 'rgb_array' or 'human'. Default: 'rgb_array'.",
+    )
+    parser.add_argument(
+        "--total-timesteps",
+        type=int,
+        default=100000,
+        help="Total time steps for PPO training.",
+    )
+    parser.add_argument(
         "--train-verbosity",
         type=bool,
         default=True,
         help="Verbosity of training parameters. Default: True.",
-    )
-    parser.add_argument(
-        "--show-plots",
-        type=bool,
-        default=False,
-        help="Shows r_ratio and reward plots. Default: False.",
-    )
-    parser.add_argument(
-        "total_timesteps",
-        type=int,
-        help="Total time steps for PPO training.",
     )
     args = parser.parse_args()
 
@@ -439,24 +443,24 @@ if __name__ == "__main__":
     ########################################################################################################################
     # Extract parsed arguments
     exc = args.exc
+    goal_reset = args.goal_reset
+    num_eval = args.num_eval
     num_obs = args.num_obs
     particle_reset = args.particle_reset
-    goal_reset = args.goal_reset
-    reward_type = args.reward_type
-    total_timesteps = args.total_timesteps
-    rollout_steps = args.rollout_steps
-    test_after_train = args.test_after_train
-    train_render_mode = args.train_render_mode
-    train_render_fps = args.train_render_fps
-    train_episode_time_limit = args.train_episode_time_limit
     prompt_file = args.prompt_file
+    reward_type = args.reward_type
+    rollout_steps = args.rollout_steps
+    show_plots = args.show_plots
+    test_after_train = args.test_after_train
+    test_episode_time_limit = args.test_episode_time_limit
     test_model_path = args.test_model_path
     test_render_fps = args.test_render_fps * num_obs
-    test_episode_time_limit = args.test_episode_time_limit
-    num_eval = args.num_eval
     text_verbosity = args.text_verbosity
+    train_episode_time_limit = args.train_episode_time_limit
+    train_render_fps = args.train_render_fps
+    train_render_mode = args.train_render_mode
+    total_timesteps = args.total_timesteps
     train_verbosity = args.train_verbosity
-    show_plots = args.show_plots
     ########################################################################################################################
 
     # Prepare environment keyword arguments
@@ -520,7 +524,9 @@ if __name__ == "__main__":
         vec_env = DummyVecEnv([lambda: monitored_env])
 
         # Eval environment
-        eval_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
+        eval_env = gym.make(
+            "gymnasium_env/SingleParticleNoCargo-v0", **kwarg_options["delta_r"]
+        )
         monitored_eval_env = Monitor(eval_env, filename=None)
         eval_env = DummyVecEnv([lambda: monitored_eval_env])
 

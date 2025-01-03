@@ -1,6 +1,7 @@
 import sys
 import time
 import yaml
+from pathlib import Path
 
 import gymnasium as gym
 import numpy as np
@@ -18,15 +19,17 @@ class SingleParticleNoCargo(gym.Env):
     """Custom Gymnasium Environment wrapping a Pygame-based Simulator."""
 
     metadata = {
-        "render_modes": ["None", "human", "rgb_array"],
-        "render_fps": 60,
-        "reward_types": [None, "euclidean", "delta_r", "llm", "vlm"],
+        "render_modes": ["human", "rgb_array"],
+        "render_fps": 120,
+        "reward_types": ["euclidean", "delta_r", "sparse", "llm", "vlm"],
+        "train_fps": None,
     }
 
     def __init__(
         self,
-        render_mode: str = "None",
-        render_fps: int = 60,
+        render_mode: str = "rgb_array",
+        render_fps: int = 120,
+        train_fps: int | None = None,
         episode_time_limit: int = 5,
         n_obs: int = 10,
         model_id: str | None = None,
@@ -36,24 +39,28 @@ class SingleParticleNoCargo(gym.Env):
         verbose: bool = False,
         particle_reset: bool = True,
         goal_reset: bool = True,
+        goal_time: float = 1.0,
     ):
         """Initializes the environment.
 
         Args:
-            render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to "None".
+            render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to "rgb_array".
             render_fps (int, optional): Rendering framerate. Defaults to 60.
+            train_fps (int | None, optional): Framerate of the training loop. Sets timesteps per second. Defaults to None.
             episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
             n_obs (int, optional): Number of particle locations to get for input. Defaults to 10.
             model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
-            model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
+            reward_type (str | None, optional): Type of the model. Options are "llm", "vlm", "delta_r", "euclidean" and None. Defaults to None.
             model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
             context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
             verbose (bool, optional): Sets verbosity mode. Defaults to False.
             particle_reset (bool, optional): Resets particle location on start of episode. Defaults to True.
             goal_reset (bool, optional): Resets goal location on start of episode. Defaults to True.
+            goal_time (float, optional): Time after which the goal is said to be achieved if particle remains close enough to it. Defualts to 1.0.
         """
 
         self.metadata["render_fps"] = render_fps
+        self.metadata["train_fps"] = train_fps
 
         # Initialize the simulator
         self.simulator = Simulator(render_fps)
@@ -123,6 +130,7 @@ class SingleParticleNoCargo(gym.Env):
         self.inside_goal_bool = False
         self.inside_goal_timer = float('inf')
         self.done = False
+        self.goal_time = goal_time
 
     def reset(
         self,
@@ -147,6 +155,7 @@ class SingleParticleNoCargo(gym.Env):
         info = self._get_info()
 
         self.episode_time = time.time()
+        self.frame_time = time.time()
 
         return self.obs, info
 
@@ -202,17 +211,21 @@ class SingleParticleNoCargo(gym.Env):
 
         if self.verbose == True:
             print(
-                f"{'Time elapsed [simulator_step()_total]':45} : {self.time_logs['simulator_step()_total']:10.5f}"
+                f"{'Time elapsed [simulator_step()_total]':45} : {self.time_logs['simulator_step()_total']:10.10f}"
             )
             print(
-                f"{'Time elapsed [_get_obs()_total]':45} : {self.time_logs['_get_obs()_total']:10.5f}"
+                f"{'Time elapsed [_get_obs()_total]':45} : {self.time_logs['_get_obs()_total']:10.10f}"
             )
             print(
-                f"{'Time elapsed [_get_info()_total]':45} : {self.time_logs['_get_info()_total']:10.5f}"
+                f"{'Time elapsed [_get_info()_total]':45} : {self.time_logs['_get_info()_total']:10.10f}"
             )
             print(
-                f"{'Time elapsed [self.step()_total]':45} : {self.time_logs['self.step()_total']:10.5f}\n"
+                f"{'Time elapsed [self.step()_total]':45} : {self.time_logs['self.step()_total']:10.10f}\n"
             )
+
+        if self.metadata["train_fps"] != None:
+            functions.sleep(max(0, (1/self.metadata["train_fps"]) - (time.time() - self.frame_time)))
+        self.frame_time = time.time()
 
         return self.obs, reward, self.done, truncated, info
 
@@ -226,6 +239,7 @@ class SingleParticleNoCargo(gym.Env):
     def set_reward_params(
         self,
         render_fps: int = 60,
+        train_fps: int | None = None,
         model_id: str | None = None,
         reward_type: str | None = None,
         model_quant: str | None = None,
@@ -235,12 +249,14 @@ class SingleParticleNoCargo(gym.Env):
 
         Args:
             render_fps (int, optional): Rendering framerate. Defaults to 60.
+            train_fps (int | None, optional): Framerate of the training loop. Sets timesteps per second. Defaults to None.
             model_id (str | None, optional): ID of the model on hugging face repository or local path to a download model.model_id. Defaults to None.
             model_type (str | None, optional): Type of the model. Options are "llm", "vlm" and None. Defaults to None.
             model_quant (str | None, optional): The quantization level of the model. "fp16", "8b" and "4b" are implemented. Defaults to "fp16". Defaults to None.
             context_prompt_file (str | None, optional): Name of the prompt file in the "prompts" folder. Defaults to None.
         """
         self.metadata["render_fps"] = render_fps
+        self.metadata["train_fps"] = train_fps
 
         self.model_id = model_id
         self.reward_type = reward_type
@@ -269,6 +285,7 @@ class SingleParticleNoCargo(gym.Env):
         """
 
         particle_locs, goal_loc, _, _ = self.simulator.getState(
+            self.render_mode=="human",
             self.n_obs,
         )
 
@@ -294,17 +311,19 @@ class SingleParticleNoCargo(gym.Env):
             < initializations.SIM_MULTIPLE_GOALS_ACCURACY
         ):
             if not self.inside_goal_bool:
-                self.inside_goal_timer = time.time()
                 self.inside_goal_bool = True
+                self.inside_goal_timer = time.time()
+                self.prev_inside_goal_reward_time = time.time()
 
             else:
-                if (time.time() - self.inside_goal_timer) > 1:
+                if (time.time() - self.inside_goal_timer) > self.goal_time:
                     done = True
 
         else:
             if self.inside_goal_bool:
                 self.inside_goal_bool = False
                 self.inside_goal_timer = float('inf')
+                self.prev_inside_goal_reward_time = float('inf')
 
         return done
 
@@ -318,12 +337,15 @@ class SingleParticleNoCargo(gym.Env):
             context_prompt_file (str, optional): Name of the prompt file in the "prompts" folder.
         """
 
-        dir = "src/FM3_MicRo/prompts/rl_fm_rewards/"
-        context_prompt_file = dir + context_prompt_file
+
+        dir = Path(__file__).parent.parent.parent.parent / "src/FM3_MicRo/prompts/rl_fm_rewards/"
+        context_prompt_file = dir / context_prompt_file
 
         with open(context_prompt_file) as stream:
             try:
-                self.context = yaml.safe_load(stream)["prompt"]
+                content = yaml.safe_load(stream)
+                self.context = content["prompt"]
+                self.range = content["range"]
                 print("Contextual prompt is:\n" + self.context)
             except yaml.YAMLError as exc:
                 print(exc)
@@ -352,6 +374,17 @@ class SingleParticleNoCargo(gym.Env):
             dict: Dictionary containing the reward
         """
 
+        # Movement based reward = [0, 1]
+        info = {
+            "reward": 0,
+            "distance": functions.distance(
+                self.obs["particle_locs"][-1][0],
+                self.obs["particle_locs"][-1][1],
+                self.obs["goal_loc"][0],
+                self.obs["goal_loc"][1],
+            ),
+        }
+
         if self.reward_type == "euclidean":
             info = {
                 "reward": -functions.distance(
@@ -359,7 +392,7 @@ class SingleParticleNoCargo(gym.Env):
                     self.obs["particle_locs"][-1][1],
                     self.obs["goal_loc"][0],
                     self.obs["goal_loc"][1],
-                ),
+                ) / initializations.SIM_SOL_CIRCLE_RAD,
                 "distance": functions.distance(
                     self.obs["particle_locs"][-1][0],
                     self.obs["particle_locs"][-1][1],
@@ -383,7 +416,7 @@ class SingleParticleNoCargo(gym.Env):
                         self.obs["goal_loc"][0],
                         self.obs["goal_loc"][1],
                     )
-                ) / 10000,
+                ) / initializations.SIM_SOL_CIRCLE_RAD,
                 "distance": functions.distance(
                     self.obs["particle_locs"][-1][0],
                     self.obs["particle_locs"][-1][1],
@@ -420,9 +453,9 @@ class SingleParticleNoCargo(gym.Env):
                     )
 
                 try:
-                    output = float(output)/90000
+                    output = float(output)
                 except ValueError:
-                    output = float(output[: output.find("\n")])/90000
+                    output = float(output[: output.find("\n")])
 
                 delta_r = functions.distance(
                     self.obs["particle_locs"][0][0],
@@ -451,7 +484,7 @@ class SingleParticleNoCargo(gym.Env):
                     )
 
                 info = {
-                    "reward": output,
+                    "reward": output/self.range[1],
                     "distance": functions.distance(
                         self.obs["particle_locs"][-1][0],
                         self.obs["particle_locs"][-1][1],
@@ -461,8 +494,9 @@ class SingleParticleNoCargo(gym.Env):
                 }
 
             except Exception as e:
-                print(f"Error calculating coil values: {e}")
+                print(f"Error calculating coil values: {e}")       
 
+        # Goal vicinity based reward = [00, 10]
         if (
             functions.distance(
                 self.obs["particle_locs"][-1][0],
@@ -472,14 +506,19 @@ class SingleParticleNoCargo(gym.Env):
             )
             < initializations.SIM_MULTIPLE_GOALS_ACCURACY
         ):
-            info["reward"] += 0.001
+            if self.inside_goal_bool:
+                new_time = time.time()
+                info["reward"] += (((new_time - self.prev_inside_goal_reward_time)/(self.goal_time))*10)
+                self.prev_inside_goal_reward_time = new_time
 
-        if self.done:
-            info["reward"] += 1
-
+        # Time based reward penalty = [-100, 000]
         new_time = time.time()
-        info["reward"] += (new_time-self.time)/4
+        info["reward"] += (((self.time-new_time)/(self.episode_time_limit))*100)
         self.time = new_time
+
+        # Goal based reward = [000, 1000]
+        if self.done:
+            info["reward"] += 1000
 
         if self.verbose:
             print(f"Total reward: {info['reward']}\n")

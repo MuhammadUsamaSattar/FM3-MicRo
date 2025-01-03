@@ -283,19 +283,32 @@ class DistancePlotCallback(BaseCallback):
 
         # plt.show()
 
+def int_or_none(value):
+    if value.lower() == "none":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid value: '{value}', must be an integer or 'None'.")
 
 def parse_arguments():
     # Define options as lists
     exc_options = ["train", "test"]
-    reward_options = ["llm", "euclidean", "delta_r"]
+    model_quant_options = ["fp16", "8b", "4b"]
+    reward_options = ["llm", "sparse", "euclidean", "delta_r"]
     train_render_mode_options = ["rgb_array", "human"]
 
     # Set up argument parser
     parser = argparse.ArgumentParser(
         description="Train or test a PPO model in a magnetic manipulation environment."
     )
-
     # Add optional arguments
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="Size of the minibatch. Must be a factor of --rollout-steps",
+    )
     parser.add_argument(
         "--exc",
         type=str,
@@ -310,9 +323,16 @@ def parse_arguments():
         help="Whether to reset goals. Default: False.",
     )
     parser.add_argument(
-        "--llm-id",
+        "--model-id",
         type=str,
         help="ID of llm in the .env folder. The variable value in the .env folder must point to local path to the checkpoint of the model.",
+    )
+    parser.add_argument(
+        "--model-quant",
+        type=str,
+        choices=model_quant_options,
+        default="fp16",
+        help="Quantization level of the model.",
     )
     parser.add_argument(
         "--num-eval",
@@ -343,7 +363,7 @@ def parse_arguments():
         type=str,
         choices=reward_options,
         default="delta_r",
-        help="Reward type: 'llm', 'euclidean', or 'delta_r'. Default: 'delta_r'.",
+        help="Reward type: 'llm', 'sparse', 'euclidean', or 'delta_r'. Default: 'delta_r'.",
     )
     parser.add_argument(
         "--rollout-steps",
@@ -400,8 +420,14 @@ def parse_arguments():
         help="Time limit for episodes during training. Default: 2.5 seconds.",
     )
     parser.add_argument(
+        "--train-fps",
+        type=int_or_none,
+        default=None,
+        help="Timesteps per second. Default: None.",
+    )
+    parser.add_argument(
         "--train-render-fps",
-        type=int,
+        type=int_or_none,
         default=None,
         help="Frames per second during training rendering. Default: None.",
     )
@@ -420,19 +446,6 @@ def parse_arguments():
     )
     args = parser.parse_args()
 
-    ## Parse known arguments and capture trailing positional arguments
-    # args, unknown = parser.parse_known_args()
-    #
-    ## Extract the positional `total_timesteps`
-    # if len(unknown) != 1:
-    #    parser.error(
-    #        "You must provide a single positional argument for total_timesteps."
-    #    )
-    # try:
-    #    args.total_timesteps = int(unknown[0])
-    # except ValueError:
-    #    parser.error("total_timesteps must be an integer.")
-
     # Validate arguments
     if args.total_timesteps < args.rollout_steps:
         raise ValueError(
@@ -447,9 +460,11 @@ if __name__ == "__main__":
 
     ########################################################################################################################
     # Extract parsed arguments
+    batch_size = args.batch_size
     exc = args.exc
     goal_reset = args.goal_reset
-    llm_id = args.llm_id
+    model_id = args.model_id
+    model_quant = args.model_quant
     num_eval = args.num_eval
     num_obs = args.num_obs
     particle_reset = args.particle_reset
@@ -464,6 +479,7 @@ if __name__ == "__main__":
     text_verbosity = args.text_verbosity
     total_timesteps = args.total_timesteps
     train_episode_time_limit = args.train_episode_time_limit
+    train_fps = args.train_fps
     train_render_fps = args.train_render_fps
     train_render_mode = args.train_render_mode
     train_verbosity = args.train_verbosity
@@ -474,11 +490,12 @@ if __name__ == "__main__":
         "llm": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
+            "train_fps": train_fps,
             "episode_time_limit": train_episode_time_limit,
             "n_obs": num_obs,
-            "model_id": llm_id,
+            "model_id": model_id,
             "reward_type": "llm",
-            "model_quant": "4b",
+            "model_quant": model_quant,
             "context_prompt_file": prompt_file,
             "verbose": False,
             "particle_reset": particle_reset,
@@ -487,6 +504,7 @@ if __name__ == "__main__":
         "euclidean": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
+            "train_fps": train_fps,
             "episode_time_limit": train_episode_time_limit,
             "n_obs": num_obs,
             "reward_type": "euclidean",
@@ -496,13 +514,24 @@ if __name__ == "__main__":
         "delta_r": {
             "render_mode": train_render_mode,
             "render_fps": train_render_fps,
+            "train_fps": train_fps,
             "episode_time_limit": train_episode_time_limit,
             "n_obs": num_obs,
             "reward_type": "delta_r",
             "particle_reset": particle_reset,
             "goal_reset": goal_reset,
         },
-        "test_euclidean_distance": {
+        "sparse": {
+            "render_mode": train_render_mode,
+            "render_fps": train_render_fps,
+            "train_fps": train_fps,
+            "episode_time_limit": train_episode_time_limit,
+            "n_obs": num_obs,
+            "reward_type": "sparse",
+            "particle_reset": particle_reset,
+            "goal_reset": goal_reset,
+        },
+        "human_test_delta_r": {
             "render_mode": "human",
             "render_fps": test_render_fps,
             "episode_time_limit": test_episode_time_limit,
@@ -518,8 +547,8 @@ if __name__ == "__main__":
 
         # Define the directory for saving model, plot, and logs
         if reward_type == "llm":
-            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{prompt_file[11:-5]}_{total_timesteps}-steps_{num_obs}-obs"
-        elif reward_type in ["euclidean", "delta_r"]:
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{model_id.lower()}_{prompt_file[11:-5]}_{total_timesteps}-steps_{num_obs}-obs"
+        elif reward_type in ["euclidean", "delta_r", "sparse"]:
             save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{num_obs}-obs"
 
         os.makedirs(save_dir, exist_ok=True)  # Create directory if it doesn't exist
@@ -531,7 +560,7 @@ if __name__ == "__main__":
 
         # Eval environment
         eval_env = gym.make(
-            "gymnasium_env/SingleParticleNoCargo-v0", **kwarg_options["delta_r"]
+            "gymnasium_env/SingleParticleNoCargo-v0", **kwargs
         )
         monitored_eval_env = Monitor(eval_env, filename=None)
         eval_env = DummyVecEnv([lambda: monitored_eval_env])
@@ -543,6 +572,7 @@ if __name__ == "__main__":
             verbose=train_verbosity,
             device="cpu",
             n_steps=rollout_steps,
+            batch_size=batch_size,
         )
 
         # Create callbacks
@@ -551,6 +581,7 @@ if __name__ == "__main__":
         )
         eval_callback = EvalCallback(
             eval_env,
+            best_model_save_path=save_dir,
             log_path=save_dir,
             deterministic=True,
             eval_freq=total_timesteps // num_eval,
@@ -581,7 +612,7 @@ if __name__ == "__main__":
             print(f"Model saved as {test_model_path}")
 
     if test_after_train or exc == "test":
-        kwargs = kwarg_options["test_euclidean_distance"]
+        kwargs = kwarg_options["human_test_delta_r"]
 
         vec_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
         monitored_env = Monitor(vec_env, filename=None)

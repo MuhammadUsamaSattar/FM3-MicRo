@@ -1,0 +1,7 @@
+Restoring modules from user's FM3-MicRo
+/scratch/work/sattaru1/.conda_envs/FM3-MicRo/lib/python3.10/site-packages/sklearn/base.py:376: InconsistentVersionWarning: Trying to unpickle estimator MLPRegressor from version 1.5.1 when using version 1.5.2. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:06<00:19,  6.37s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:11<00:11,  5.79s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:16<00:05,  5.45s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:18<00:00,  3.80s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:18<00:00,  4.52s/it]
+srun: error: gpu48: task 0: Bus error (core dumped)
+srun: Terminating StepId=4948780.0

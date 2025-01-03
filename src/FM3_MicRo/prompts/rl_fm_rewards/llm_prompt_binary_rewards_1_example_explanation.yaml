@@ -1,3 +1,4 @@
+range: [0, 1]
 prompt: "You are provided description of a 2D workspace where location of 
   each point can be represented as (x, y) where 'x' is the x-axis 
   co-ordinate while 'y' is the y-axis co-ordinate. The center of the workspace 

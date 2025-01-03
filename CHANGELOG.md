@@ -1,3 +1,4 @@
+- **3552754:** Added argument for setting LLM model
 - **0d490e2:** Modified npz plotter to have minimum value of 0 in y axis
 - **24be5fb:** Sorted command line arguments and added .bat file to run the script with various parameters.
 - **166779d:** Modified rl.py to work with command line arguments.

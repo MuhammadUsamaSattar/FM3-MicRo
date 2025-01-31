@@ -1,6 +1,7 @@
 import os
 import time
-os.environ['TRANSFORMERS_OFFLINE'] = '1'
+
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 import torch
 from dotenv import load_dotenv
@@ -66,54 +67,67 @@ class LLM:
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_id,
             token=access_token,
+            padding_side="left",
         )
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
         self.verbose = verbose
 
     def get_response(
         self,
-        context: str,
-        txt: str,
+        batches: int,
+        contexts: list,
+        txts: list,
         tokens: int,
     ) -> str:
         """Generates a response from the input image and text.
 
         Args:
-            context (str): Context for the system
-            txt (str): Prompt text
-            tokens (int): Number of token to generate
+            batches (int): Number of batches to process.
+            contexts (list): List of contexts for the system.
+            txts (list): List of prompt texts.
+            tokens (int): Number of token to generate.
 
         Returns:
-            str: Output response
+            str: Output response.
         """
 
-        # Autoregressively complete prompt and output T/s
-        conversation = [
-            {
-                "role": "system",
-                "content": context,
-            },
-            {
-                "role": "user",
-                "content": txt,
-            },
-        ]
+        inputs = []
+        for i in range(batches):
+            # Autoregressively complete prompt and output T/s
+            conversation = [
+                {
+                    "role": "system",
+                    "content": contexts[i],
+                },
+                {
+                    "role": "user",
+                    "content": txts[i],
+                },
+            ]
 
-        prompt = self.tokenizer.apply_chat_template(
-            conversation, add_generation_prompt=True, tokenize=False
+            prompt = self.tokenizer.apply_chat_template(
+                conversation, add_generation_prompt=True, tokenize=False
+            )
+
+            inputs.append(prompt)
+
+        inputs = self.tokenizer(text=inputs, return_tensors="pt", padding=True).to(
+            "cuda"
         )
-
-        inputs = self.tokenizer(text=prompt, return_tensors="pt").to("cuda")
 
         t = time.time()
         output = self.model.generate(
             **inputs, max_new_tokens=tokens, pad_token_id=self.tokenizer.eos_token_id
         )
         dt = time.time() - t
-        generated_tokens = len(output[0]) - len(inputs["input_ids"][0])
 
-        output = self.tokenizer.decode(
-            output[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True
+        generated_tokens = 0
+        for i in range(len(output)):
+            generated_tokens += len(output[i]) - len(inputs["input_ids"][i])
+
+        output = self.tokenizer.batch_decode(
+            output[:, inputs["input_ids"][i].shape[0] :], skip_special_tokens=True
         )
 
         if self.verbose == True:
@@ -131,15 +145,25 @@ class LLM:
 if __name__ == "__main__":
 
     llm = LLM(
-        model_id="TRITON_LLAMA_8B",
+        model_id="PATH_LLAMA_8B",
         model_quant="fp16",
         device="cuda",
         verbose=True,
     )
 
     while True:
+        batches = int(input("\nEnter number of batches: "))
+        tokens = int(input("\nEnter tokens: "))
+
+        contexts = []
+        prompts = []
+        for i in range(batches):
+            contexts.append(input("\nEnter context: "))
+            prompts.append(input("\nEnter prompt: "))
+
         llm.get_response(
-            input("\nEnter context: "),
-            input("\nEnter prompt: "),
-            tokens=int(input("\nEnter tokens: ")),
+            batches,
+            contexts,
+            prompts,
+            tokens,
         )

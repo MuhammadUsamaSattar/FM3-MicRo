@@ -439,8 +439,9 @@ class SingleParticleNoCargo(gym.Env):
                 # Use the model to calculate coil values
                 if self.reward_type == "llm":
                     output = self.model.get_response(
-                        context=self.context,
-                        txt=txt,
+                        batches=1,
+                        contexts=[self.context],
+                        txts=[txt],
                         tokens=1000,
                     )
 
@@ -453,9 +454,9 @@ class SingleParticleNoCargo(gym.Env):
                     )
 
                 try:
-                    output = float(output)
+                    output = float(output[0])
                 except ValueError:
-                    output = float(output[: output.find("\n")])
+                    output = float(output[0][: output.find("\n")])
 
                 delta_r = functions.distance(
                     self.obs["particle_locs"][0][0],

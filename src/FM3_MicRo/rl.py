@@ -290,6 +290,16 @@ def int_or_none(value):
         return int(value)
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid value: '{value}', must be an integer or 'None'.")
+    
+def str2bool(value):
+    if isinstance(value, bool):
+        return value
+    if value.lower() in {'true', 'yes', '1'}:
+        return True
+    elif value.lower() in {'false', 'no', '0'}:
+        return False
+    else:
+        raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 
 def parse_arguments():
     # Define options as lists
@@ -318,7 +328,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--goal-reset",
-        type=bool,
+        type=str2bool,
         default=False,
         help="Whether to reset goals. Default: False.",
     )
@@ -348,14 +358,14 @@ def parse_arguments():
     )
     parser.add_argument(
         "--particle-reset",
-        type=bool,
+        type=str2bool,
         default=True,
         help="Whether to reset particles. Default: True.",
     )
     parser.add_argument(
         "--prompt-file",
         type=str,
-        default="llm_prompt_continuous_rewards_zero_shot.yaml",
+        default=None,
         help="Prompt file for foundation model training. Default: 'llm_prompt_continuous_rewards_zero_shot.yaml'.",
     )
     parser.add_argument(
@@ -373,13 +383,13 @@ def parse_arguments():
     )
     parser.add_argument(
         "--show-plots",
-        type=bool,
+        type=str2bool,
         default=False,
         help="Shows r_ratio and reward plots. Default: False.",
     )
     parser.add_argument(
         "--test-after-train",
-        type=bool,
+        type=str2bool,
         default=False,
         help="Whether to test the model after training. Default: False.",
     )
@@ -392,7 +402,7 @@ def parse_arguments():
     parser.add_argument(
         "--test-model-path",
         type=str,
-        default="src/FM3_MicRo/control_models/2024-12-19_18-02-20_delta_r_5000000-steps_5-obs/model",
+        default=None,
         help="Path to the model used during testing. Default: [predefined path].",
     )
     parser.add_argument(
@@ -403,7 +413,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--text-verbosity",
-        type=bool,
+        type=str2bool,
         default=False,
         help="Verbosity of textual outputs. Default: False.",
     )
@@ -440,7 +450,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--train-verbosity",
-        type=bool,
+        type=str2bool,
         default=True,
         help="Verbosity of training parameters. Default: True.",
     )
@@ -547,11 +557,20 @@ if __name__ == "__main__":
 
         # Define the directory for saving model, plot, and logs
         if reward_type == "llm":
-            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{model_id.lower()}_{prompt_file[11:-5]}_{total_timesteps}-steps_{num_obs}-obs"
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{model_id.lower()}_{prompt_file[11:-5]}_{total_timesteps}-steps_{num_obs}-obs_ep-time-{train_episode_time_limit}"
         elif reward_type in ["euclidean", "delta_r", "sparse"]:
-            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{num_obs}-obs"
+            save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{num_obs}-obs_ep-time-{train_episode_time_limit}"
 
         os.makedirs(save_dir, exist_ok=True)  # Create directory if it doesn't exist
+
+        metadata_file = os.path.join(save_dir, "metadata.txt")
+        with open(metadata_file, "w") as f:
+            f.write("Parsed Arguments:\n")
+            for arg, value in vars(args).items():
+                f.write(f"{arg}: {value}\n")
+
+        if text_verbosity:
+            print(f"Metadata saved to {metadata_file}")
 
         # Single environment
         vec_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
@@ -560,7 +579,7 @@ if __name__ == "__main__":
 
         # Eval environment
         eval_env = gym.make(
-            "gymnasium_env/SingleParticleNoCargo-v0", **kwargs
+            "gymnasium_env/SingleParticleNoCargo-v0", **kwarg_options["delta_r"]
         )
         monitored_eval_env = Monitor(eval_env, filename=None)
         eval_env = DummyVecEnv([lambda: monitored_eval_env])

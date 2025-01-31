@@ -4,3 +4,4 @@ Sample Particle Videos
 test.py
 .env
 src/FM3_MicRo/control_models/20*
+outputs/

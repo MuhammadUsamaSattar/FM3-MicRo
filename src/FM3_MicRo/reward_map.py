@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 
-def calculate_rewards(data, data_buffer, llm, verbose):
+def calculate_rewards(data, data_buffer, llm, prompt_file, verbose):
     """Example function that takes two points and returns a computed value."""
     # return np.linalg.norm(np.array(point1) - np.array(point2))  # Example: Euclidean distance
 
@@ -21,7 +21,7 @@ def calculate_rewards(data, data_buffer, llm, verbose):
 
         context_prompt_file = (
             Path(__file__).parent.parent.parent
-            / "src/FM3_MicRo/prompts/rl_fm_rewards/llm_prompt_continuous_rewards_zero_shot.yaml"
+            / f"src/FM3_MicRo/prompts/rl_fm_rewards/{prompt_file}"
         )
 
         with open(context_prompt_file) as stream:
@@ -75,7 +75,7 @@ def calculate_rewards(data, data_buffer, llm, verbose):
 
 
 def generate_workspace_data(
-    workspace_radius, resolution, reward_calculation_radius, llm, verbose
+    workspace_radius, resolution, reward_calculation_radius, llm, prompt_file, verbose
 ):
     """Generates data for all pairs of points within range in a circular workspace."""
     data = {}
@@ -118,8 +118,8 @@ def generate_workspace_data(
 
             data_buffer.append((p1, p2))
             total_points_processed += 1
+        data = calculate_rewards(data, data_buffer, llm, prompt_file, verbose)
 
-        data = calculate_rewards(data, data_buffer, llm, verbose)
         print(
             f"Total time taken for {total_points_processed} datapoints: {(time.time()-total_run_time):.3f} seconds.\nProcessing rate: {((time.time()-total_run_time)/total_points_processed):.3f} seconds/datapoint.\n"
         )
@@ -127,62 +127,99 @@ def generate_workspace_data(
     return data, points
 
 
-def visualize_data_from_json(file_path, input_point, verbose):
+def visualize_data_from_json(file_path, input_point, show_plot_after_save, verbose):
     """Loads data from a JSON file and visualizes it for a specific input point."""
 
+    t = time.time()
     # Load JSON data
     with open(file_path, "r") as file:
         data = json.load(file)
     print(f"Total number of datapoints: {len(data)}")
 
+    points = []
+    nearest_input_point = [(float("inf"), float("inf")), float("inf")]
+    for key, value in data.items():
+        key_tuple = tuple(map(float, key.split("_")))  # Convert string to tuple of ints
+        p1 = (key_tuple[0], key_tuple[1])
+        if p1 not in points:
+            points.append(p1)
+
+            d = distance(input_point[0], input_point[1], p1[0], p1[1])
+            if d < nearest_input_point[1]:
+                nearest_input_point = [p1, d]
+
+    input_point = nearest_input_point[0]
+
     x_coords = []
     y_coords = []
     values = []
-    points = []
-
-    # Convert keys back to tuples and filter based on input_point
-    processed_data = {}
-    for key, value in data.items():
-        # Convert "x1_y1_x2_y2" back to ((x1, y1), (x2, y2))
-        key_tuple = tuple(map(int, key.split("_")))  # Convert string to tuple of ints
-        if len(key_tuple) == 4:
-            p1 = (key_tuple[0], key_tuple[1])
-            p2 = (key_tuple[2], key_tuple[3])
-            processed_data[(p1, p2)] = value
+    valued_points = []
 
     # Extract points where the first coordinate matches the input point
     if verbose:
-        print(f"{'Point':<25} {'Value':<10}")
+        print(f"{'Point':<50} {'Value':<10}")
 
-    for (p1, p2), value in processed_data.items():
-        if p1 == input_point:
-            if verbose:
-                print(f"{str((p1, p2)):<25} {processed_data[(p1, p2)]:>10.3f}")
+    # Convert keys back to tuples and filter based on input_point
+    for key, value in data.items():
+        # Convert "x1_y1_x2_y2" back to ((x1, y1), (x2, y2))
+        key_tuple = tuple(map(float, key.split("_")))  # Convert string to tuple of ints
+        if len(key_tuple) == 4:
+            p1 = (key_tuple[0], key_tuple[1])
+            p2 = (key_tuple[2], key_tuple[3])
 
-            x_coords.append(p2[0])
-            y_coords.append(p2[1])
-            values.append(value)
+            if p2 not in [(0, 0), p1]:
+                if p1 == input_point:
+                    if verbose:
+                        print(f"{str((p1, p2)):<50} {value:>10.3f}")
 
-        elif p2 not in points:
-            # No matching pair, set the value to 0
-            x_coords.append(p2[0])
-            y_coords.append(p2[1])
-            values.append(0)
+                    x_coords.append(p2[0])
+                    y_coords.append(p2[1])
+                    values.append(value)
+                    valued_points.append(p2)
 
-        points.append(p2)
+                elif p2 not in valued_points:
+                    x_coords.append(p2[0])
+                    y_coords.append(p2[1])
+                    values.append(0)
 
+    print(f"Time taken: {time.time() - t}")
     # Create scatter plot
     plt.figure(figsize=(8, 8))
-    scatter = plt.scatter(
-        x_coords, y_coords, c=values, cmap="coolwarm", s=50, vmin=-1.0, vmax=1.0
-    )
+
+    # Scatter plot for all points
+    scatter = plt.scatter(x_coords, y_coords, c=values, cmap="coolwarm", s=50, marker=".", vmin=-1.0, vmax=1.0)
+
+    # Scatter plot for goal and current position
+    plt.scatter([0], [0], c='black', s=50, marker='x')
+    plt.scatter([input_point[0]], [input_point[1]], c='black', s=50, marker='o')
+
+    # Add colorbar and labels
     plt.colorbar(scatter, label="Reward Value")
     plt.title(f"Visualization for Input Point {input_point}")
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
     plt.axis("equal")
     plt.grid(True)
-    plt.show()
+    plt.tight_layout()
+
+    # Extract variables from the JSON filename
+    filename = Path(file_path).name
+    file_stem, file_ext = filename.rsplit(".", 1)  # Remove extension
+    parts = file_stem.split("_map_")
+    
+    if len(parts) == 2:
+        file_suffix = parts[1]  # Extract model_id and parameters
+
+        # Construct new plot filename
+        plot_filename = f"{input_point[0]}_{input_point[1]}_map_{file_suffix}.png"
+        plot_path = Path(file_path).parent / plot_filename
+
+        # Save the plot
+        plt.savefig(plot_path, dpi=300)
+        print(f"Plot saved to: {plot_path}")
+
+    if show_plot_after_save:
+        plt.show()
 
 
 def pre_calculate_valid_pairs(workspace_radius, reward_calculation_radius, resolution, verbose):
@@ -275,6 +312,16 @@ def parse_tuple(arg):
         raise argparse.ArgumentTypeError(
             "Input point must be in the format: x,y (e.g., 0,0)"
         )
+    
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value  # Already a boolean
+    if value.lower() in ("yes", "true", "t", "1"):
+        return True
+    elif value.lower() in ("no", "false", "f", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 if __name__ == "__main__":
@@ -293,6 +340,9 @@ if __name__ == "__main__":
     parser.add_argument("--plot-after-generation", type=bool, default=False, help="Plot the grid after generation of the reward map.")
     parser.add_argument("--input-point", type=parse_tuple, default=(0, 0), help="The point around which to display the rewards.")
     parser.add_argument("--file-name", type=str, help="The name of the .json file from which to extract data for plot generation.")
+    parser.add_argument("--show-plot-after-save", type=str_to_bool, default=True, help="Shows the plot after saving, when running in plot mode.")
+    parser.add_argument("--prompt-file", type=str, help="Name of the prompt file.")
+
 
     args = parser.parse_args()
 
@@ -307,17 +357,19 @@ if __name__ == "__main__":
     plot_after_generation = args.plot_after_generation
     input_point = args.input_point
     file_name = args.file_name
+    show_plot_after_save = args.show_plot_after_save
+    prompt_file = args.prompt_file
 
     file_path = Path(__file__).parent.parent.parent / "src/FM3_MicRo/reward_maps"
 
-    if verbose or mode == "calculate_data_points":
+    if verbose and (mode == "calculate_data_points" or mode == "generate"):
         print(
             f"Predicted length of generated dict: {pre_calculate_valid_pairs(workspace_radius, reward_calculation_radius, resolution, verbose)}"
         )
 
     if mode == "generate":
         total_run_time = time.time()
-        file_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_map_{model_id.lower()}__r_{reward_calculation_radius}_resolution_{resolution}.json"
+        file_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_map_{model_id.lower()}_{prompt_file[11:-5]}_r_{reward_calculation_radius}_resolution_{resolution}.json"
 
         llm = LLM(
             model_id=model_id,
@@ -327,7 +379,7 @@ if __name__ == "__main__":
         )
 
         data_dict, all_points = generate_workspace_data(
-            workspace_radius, resolution, reward_calculation_radius, llm, verbose
+            workspace_radius, resolution, reward_calculation_radius, llm, prompt_file, verbose
         )
 
         if verbose:
@@ -337,5 +389,5 @@ if __name__ == "__main__":
         dump_dict_as_variables(data_dict, file_path, file_name, verbose)
 
     elif mode == "plot" or plot_after_generation:
-        # Plot the reward map for a particular input point
-        visualize_data_from_json(file_path / file_name, input_point, verbose)
+        # Plot the reward map for a particular input point     
+        visualize_data_from_json(file_path / file_name, input_point, show_plot_after_save, verbose)

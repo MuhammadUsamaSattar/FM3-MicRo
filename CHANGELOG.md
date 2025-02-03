@@ -1,3 +1,4 @@
+- **6787067:** Added reward_map.py script that creates the reward map and plots it
 - **a43f8cc:** Missed 'System' folder in previous commit
 - **b18cba5:** Created scripts for slurm based batch execution. Position calculation is done using the framerate and not actual time.
 - **3552754:** Added argument for setting LLM model

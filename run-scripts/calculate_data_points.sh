@@ -6,7 +6,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=muhammad.sattar@aalto.fi
 #SBATCH --job-name=calc_points
-#SBATCH --array=0-5
+#SBATCH --array=0-2
 
 module restore FM3-MicRo
 source activate FM3-MicRo
@@ -15,13 +15,13 @@ source activate FM3-MicRo
 declare -A PARAMS
 
 # Parameter set 0
-PARAMS[0]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 1 --resolution 0.2 --verbose True"
+PARAMS[0]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 1 --resolution 1 --verbose True"
 
 # Parameter set 1
-PARAMS[1]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 1 --resolution 0.1 --verbose True"
+PARAMS[1]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 2 --resolution 1 --verbose True"
 
 # Parameter set 2
-PARAMS[2]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 1 --resolution 0.5 --verbose True"
+PARAMS[2]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 5 --resolution 1 --verbose True"
 
 # Parameter set 3
 PARAMS[3]="--mode calculate_data_points --workspace-radius 320 --reward-calculation-radius 2 --resolution 0.2 --verbose True"

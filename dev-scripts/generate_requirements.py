@@ -8,10 +8,6 @@ git_repo_url = "git+https://github.com/MuhammadUsamaSattar/FM3-MicRo.git"
 editable_subdirectory = "gymnasium_envs"
 editable_format = f"-e ./{editable_subdirectory}"  # Editable format for the local path
 
-# Define the path for spinnaker-python that we need to update
-spinnaker_regex = r"spinnaker-python @ file://(.+?spinnaker_python-.*?\.whl)"
-spinnaker_replacement_prefix = "./external-libs/"
-
 # Path to the requirements file
 requirements_file = Path(__file__).parent.parent / "requirements.txt"
 
@@ -34,27 +30,18 @@ for line in frozen_requirements:
     if git_repo_url in line and editable_subdirectory in line:
         line = editable_format
 
-    # 2.2: Handle spinnaker-python and adjust its file path
-    if "spinnaker-python" in line:
-        match = re.search(spinnaker_regex, line)
-        if match:
-            full_path = match.group(1)
-            # Normalize the path for Windows by ensuring that the path uses forward slashes
-            normalized_path = os.path.normpath(full_path).replace("\\", "/")
-            # Ensure the relative path part starts after 'external-libs/'
-            relative_path = normalized_path.split("external-libs")[
-                -1
-            ]  # Keep only the relative part after 'external-libs/'
-            relative_path = relative_path.lstrip("/")  # Remove any leading slashes
-            line = f"{spinnaker_replacement_prefix}{relative_path}"
-
-    # 2.3: Skip the flash_attn library
+    # 2.2: Skip the flash_attn library
     if "flash_attn" in line:
         print(f"Skipping flash_attn dependency: {line}")
         continue
 
-    # 2.4: Separate the dependencies into PyTorch-related ones and others
-    if re.match(r"(torch(?:audio|vision)?==([\d.]+)\+cu\d+)", line):
+    # 2.3: Skip spinnaker-python (removes it regardless of path)
+    if "spinnaker-python" in line:
+        print(f"Skipping spinnaker-python dependency: {line}")
+        continue
+
+    # 2.4: Separate PyTorch-related dependencies from others
+    if line.startswith(("torch==", "torchaudio==", "torchvision==")):
         torch_dependencies.append(line)
     else:
         other_dependencies.append(line)

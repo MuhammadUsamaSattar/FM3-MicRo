@@ -64,7 +64,7 @@ def calculate_rewards(data, data_buffer, llm, prompt_file, verbose):
             try:
                 output = float(outputs[i])
             except ValueError:
-                output = float(outputs[i][: output.find("\n")])
+                output = float(outputs[i][: outputs[i].find("\n")])
 
             data[data_buffer[i]] = output / r[1]
             
@@ -93,7 +93,6 @@ def generate_workspace_data(
     total_points_processed = 0
     # Compute values for each valid pair of points
     for p1 in points:
-        data_buffer = []
         x_vals = np.arange(
             p1[0] - reward_calculation_radius,
             p1[0] + reward_calculation_radius + resolution,
@@ -115,10 +114,11 @@ def generate_workspace_data(
                 round(p2[0] / resolution) * resolution,
                 round(p2[1] / resolution) * resolution,
             )
+            data_buffer = []
 
             data_buffer.append((p1, p2))
             total_points_processed += 1
-        data = calculate_rewards(data, data_buffer, llm, prompt_file, verbose)
+            data = calculate_rewards(data, data_buffer, llm, prompt_file, verbose)
 
         print(
             f"Total time taken for {total_points_processed} datapoints: {(time.time()-total_run_time):.3f} seconds.\nProcessing rate: {((time.time()-total_run_time)/total_points_processed):.3f} seconds/datapoint.\n"

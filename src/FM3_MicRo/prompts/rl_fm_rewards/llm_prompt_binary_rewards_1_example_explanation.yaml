@@ -22,8 +22,7 @@ prompt: "You are provided description of a 2D workspace where location of
   particle started at (17.25, -160.50) and ended at (16.50, -159.75), while 
   the goal was at (5.75, -57.00). The distance to the goal at starting 
   position was 104.13 while the distance at ending position was 103.31. Since, 
-  103.31 < 104.13, the particle moved closer to the goal. Therefore, the 
-  particle moved closer to the goal.\n
+  103.31 < 104.13, the particle moved closer to the goal.\n
   \n
   You must only output either a 0 or 1. Do not output any other text in your 
   reponse. Do not output any code or explanation.\n"

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=5:00:00
+#SBATCH --time=35:00:00
 #SBATCH --gpus=h100:1
 #SBATCH --mem=20G
 #SBATCH --output=outputs/%A/%a_output.out
@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=muhammad.sattar@aalto.fi
 #SBATCH --job-name=gen_rew_map
-#SBATCH --array=0-2
+#SBATCH --array=1-2
 
 module restore FM3-MicRo
 source activate FM3-MicRo

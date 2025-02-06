@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --time=100:00:00
 #SBATCH --gpus=h100:1
-#SBATCH --mem=10G
+#SBATCH --mem=20G
 #SBATCH --output=outputs/%A/%a_output.out
 #SBATCH --error=outputs/%A/%a_error.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=muhammad.sattar@aalto.fi
 #SBATCH --job-name=qwen_7b_rew
-#SBATCH --array=0-5
+#SBATCH --array=5
 
 module restore FM3-MicRo
 source activate FM3-MicRo

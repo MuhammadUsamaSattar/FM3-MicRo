@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=100:00:00
 #SBATCH --gpus=h100:1
-#SBATCH --mem=10G
+#SBATCH --mem=30G
 #SBATCH --output=outputs/%A/%a_output.out
 #SBATCH --error=outputs/%A/%a_error.out
 #SBATCH --mail-type=ALL

@@ -1,5 +1,6 @@
 import sys
 import time
+import importlib.util
 import yaml
 from pathlib import Path
 
@@ -7,12 +8,17 @@ import gymnasium as gym
 import numpy as np
 import pygame
 from gymnasium import spaces
+from PyQt5.QtWidgets import QApplication
 
 from gymnasium_env.envs.Library.llm import LLM
 from gymnasium_env.envs.Library.vlm import VLM
 from gymnasium_env.envs.System import initializations
 from gymnasium_env.envs.System.Library import functions
 from gymnasium_env.envs.System.simulator import Simulator
+
+package_spec = importlib.util.find_spec("PySpin")
+if package_spec:
+    from gymnasium_env.envs.System.gui import mywindow
 
 
 class SingleParticleNoCargo(gym.Env):
@@ -40,12 +46,13 @@ class SingleParticleNoCargo(gym.Env):
         particle_reset: bool = True,
         goal_reset: bool = True,
         goal_time: float = 1.0,
+        env: str = "simulator",
     ):
         """Initializes the environment.
 
         Args:
             render_mode (str, optional): The mode in which to render the game. "human" and "rgb_array" are available. Defaults to "rgb_array".
-            render_fps (int, optional): Rendering framerate. Defaults to 60.
+            render_fps (int, optional): Rendering framerate. This argument has no effect for env == 'gui'. Defaults to 60.
             train_fps (int | None, optional): Framerate of the training loop. Sets timesteps per second. Defaults to None.
             episode_time_limit (int, optional): The number of episodes to train for. Defaults to 5.
             n_obs (int, optional): Number of particle locations to get for input. Defaults to 10.
@@ -57,13 +64,19 @@ class SingleParticleNoCargo(gym.Env):
             particle_reset (bool, optional): Resets particle location on start of episode. Defaults to True.
             goal_reset (bool, optional): Resets goal location on start of episode. Defaults to True.
             goal_time (float, optional): Time after which the goal is said to be achieved if particle remains close enough to it. Defualts to 1.0.
+            env (str, optional): Type of env. Options are 'simulator' and 'gui'. Defualts to 'simulator'.
         """
 
         self.metadata["render_fps"] = render_fps
         self.metadata["train_fps"] = train_fps
 
-        # Initialize the simulator
-        self.simulator = Simulator(render_fps)
+        # Initialize the env
+        if env == "simulator":
+            self.env = Simulator(render_fps)
+        elif env == "gui":
+            app = QApplication(sys.argv)  # Initialization of QT app
+            self.env = mywindow()
+            self.env.show()
 
         # Define observation space: 2D particle location (-r to r) and 2D goal location (-r to r)
         r = initializations.SIM_SOL_CIRCLE_RAD
@@ -150,7 +163,7 @@ class SingleParticleNoCargo(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        self.simulator.resetAtRandomLocs(seed, self.particle_reset, self.goal_reset)
+        self.env.resetAtRandomLocs(seed, self.particle_reset, self.goal_reset)
         self.obs = self._get_obs()
         info = self._get_info()
 
@@ -178,7 +191,7 @@ class SingleParticleNoCargo(gym.Env):
 
         # Run one frame of the simulator
         self.time_logs["simulator_step()_total"] = time.time()
-        self.simulator.step(action, render)
+        self.env.step(action, render)
         self.time_logs["simulator_step()_total"] = (
             time.time() - self.time_logs["simulator_step()_total"]
         )
@@ -267,14 +280,14 @@ class SingleParticleNoCargo(gym.Env):
 
     def get_rgb_array(self):
         return np.transpose(
-            np.array(pygame.surfarray.pixels3d(self.simulator.canvas)),
+            np.array(pygame.surfarray.pixels3d(self.env.canvas)),
             axes=(1, 0, 2),
         )
 
     def _close(self):
         """Close the environment and simulator. Only called when pygame window is closed by the user"""
 
-        self.simulator.close()
+        self.env.close()
         sys.exit()
 
     def _get_obs(self) -> dict:
@@ -284,7 +297,7 @@ class SingleParticleNoCargo(gym.Env):
             dict: Observation dictionary containing the particle location and goal location.
         """
 
-        particle_locs, goal_loc, _, _ = self.simulator.getState(
+        particle_locs, goal_loc, _, _ = self.env.getState(
             self.render_mode=="human",
             self.n_obs,
         )

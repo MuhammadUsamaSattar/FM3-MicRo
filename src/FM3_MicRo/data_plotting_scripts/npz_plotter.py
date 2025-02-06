@@ -77,16 +77,23 @@ class NPZPlotter:
         
         for label, dataset in self.data.items():
             mean_rewards = np.mean(dataset["results"], axis=1)
-            plt.plot(dataset["timesteps"], mean_rewards, label=label if label else None)
+            plt.plot(dataset["timesteps"], mean_rewards, label=label if label else None, linewidth=2.5)
         
-        plt.xlabel("Timesteps")
-        plt.ylabel("Mean Reward")
-        plt.title("Evaluation Results")
+        font = {
+        'size': 24,
+        }
+        tick_fontsize=16
+
+        plt.xlabel("Timesteps", font)
+        plt.ylabel("Mean Reward", font)
+        plt.title("Evaluation Results", font)
+        plt.xticks(fontsize=tick_fontsize)
+        plt.yticks(fontsize=tick_fontsize)
         plt.grid()
         plt.ylim(bottom=min(np.min(dataset["results"]) for dataset in self.data.values()), top=None)
         
         if any(self.npz_files.keys()):  # Only show legend if labels exist
-            plt.legend()
+            plt.legend(fontsize=tick_fontsize)
 
 
 if __name__ == "__main__":
@@ -112,7 +119,7 @@ if __name__ == "__main__":
 
     npz_file = "2025-01-23_21-46-11_llm_triton_qwen_14b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz"
 
-    plotter = NPZPlotter(npz_files=npz_files_14b, text_verbosity=True)
+    plotter = NPZPlotter(npz_files=npz_files_model_sizes, text_verbosity=True)
     plotter.print()
     #plotter.save()
     plotter.plot()

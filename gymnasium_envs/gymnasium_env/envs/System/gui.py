@@ -27,6 +27,7 @@ import sys
 import time
 
 import cv2
+import numpy as np
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -36,9 +37,7 @@ from gymnasium_env.envs.System.Library import blob_detection as Blob_detect
 from gymnasium_env.envs.System.Library import data_extractor
 from gymnasium_env.envs.System.Library import functions
 from gymnasium_env.envs.System.Library import pyspin_wrapper as PySpin_lib
-from gymnasium_env.envs.System.Control_Algorithms.control_algorithm import (
-    control_algorithm,
-)
+from gymnasium_env.envs.System.Control_Algorithms import control_algorithm
 from gymnasium_env.envs.System.Interface.Ui_interface import *
 
 
@@ -79,7 +78,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
             False  # Flag to determine if multiple goals are being set
         )
 
-        # Detected location of the particle. Starts at top-right of the screen
+        # Detected location of the particle. Starts at top-right of the screen. This is a list to allow multiple particles.
         self.particle_locs = [
             [
                 initializations.GUI_FRAME_WIDTH / 2,
@@ -722,13 +721,11 @@ class mywindow(QMainWindow, Ui_MainWindow):
                         # Automatic control is kept on for 5 seconds so particle position can stablize
                         data_time = time.time()
                         while (time.time() - data_time) < 5:
-                            self.run_frame()
+                            self.step()
 
                             # If program is closed, ensures that all solenoids are turned off
                             if not self.isVisible():
-                                self.resetVals()
-                                sys.exit(app.exec_())
-
+                                self.close()
                         self.flag_automatic_control = False
                         self.resetVals()
 
@@ -749,7 +746,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
                         # Frame limit is set so that trial can be ended quicker since static positions are useless data
                         # Time limit is set so that data from lower current values does not dominate the dataset
                         while lost_for_frames < 100 and (time.time() - data_time) < 15:
-                            self.run_frame()
+                            self.step()
 
                             self.data_extractor.record_datapoint(
                                 self.particle_locs, self.coil_vals, coil_index=i
@@ -762,8 +759,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
                             # If program is closed, ensures that all solenoids are turned off
                             if not self.isVisible():
-                                self.resetVals()
-                                sys.exit(app.exec_())
+                                self.close()
 
                     self.demagnetizeSolenoid(
                         i
@@ -793,12 +789,11 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
                     # Maintain current for 0.1 to allow magnetic field to fully develop
                     while time.time() - time_stamp < 0.1:
-                        self.run_frame()
+                        self.step()
 
             # If program is closed, ensures that all solenoids are turned off
             if not self.isVisible():
-                self.resetVals()
-                sys.exit(app.exec_())
+                self.close()
 
         self.manual(0, index, self.coil_vals)
 
@@ -1138,6 +1133,107 @@ class mywindow(QMainWindow, Ui_MainWindow):
         self.drawBlobs(frame, particle_locs)
         self.drawSolenoids(frame, coil_locs, coil_vals)
 
+    def resetAtRandomLocs(self, seed, particle_reset, goal_reset):
+        """Resets the game by resetting all values and placing the partcile and goal at random locations.
+
+        Args:
+            seed : Seed value that determines the pseudo-random number.
+            particle_reset : Resets particle location on start of episode.
+            goal_reset : Resets goal location on start of episode.
+        """
+
+        if goal_reset:
+            factor = 0.8 * 3 / 4
+            # Attributes to hold the particle and goal locations
+            self.goal_locs = [
+                list(
+                    np.random.randint(
+                        -initializations.GUI_SOL_CIRCLE_RAD * factor,
+                        initializations.GUI_SOL_CIRCLE_RAD * factor,
+                        size=2,
+                        dtype=int,
+                    )
+                )
+            ]
+
+        else:
+            self.goal_locs = [[0, 0]]
+
+        if particle_reset:
+            self.particle_start_loc = self.goal_locs[0].copy()
+            factor = 0.8
+
+            r = np.random.randint(
+                200,
+                initializations.GUI_SOL_CIRCLE_RAD * factor,
+                dtype=int,
+            )
+
+            self.particle_start_loc[0] = np.random.randint(
+                -r,
+                r,
+                dtype=int,
+            )
+
+            self.particle_start_loc[1] = math.sqrt((r**2) - (self.particle_start_loc[0]**2))
+            self.particle_start_loc[1] *= np.random.choice([-1, 1])
+
+        temp = self.goal_locs[0].copy()
+        self.goal_locs[0] = self.particle_start_loc.copy()
+        self.flag_automatic_control = True  # Turns on automatic control so particle can move to the starting location
+
+        # Automatic control is kept on for 5 seconds so particle position can stablize
+        data_time = time.time()
+        while (time.time() - data_time) < 5:
+            self.step()
+
+            # If program is closed, ensures that all solenoids are turned off
+            if not self.isVisible():
+                self.close()
+
+        self.flag_automatic_control = False
+        self.resetVals()
+        self.goal_locs[0] = temp.copy()
+
+        self.flag_setting_multiple_goals = (
+            False  # Flag to detect if multiple goals mode has been turned on
+        )
+        self.flag_gen_log_data = False  # Flag to detect if logging mode has been turned on
+
+        self.flag_record = False  # Flag to detect if canvas is being recorded
+
+        self.data_extractor = data_extractor.data_extractor(
+            self.coil_locs,
+            initializations.COIL_NAMES,
+        )  # Stores the data extractor object in an attribute
+
+        # Gets names of the paths for video and snapshot functions
+        (
+            self.path,
+            self.video_name_root,
+            self.video_num,
+            self.snapshot_name_root,
+            self.snapshot_num,
+        ) = self.getFileNames()
+
+    def getState(self, render, n_obs=1):
+        particle_locs = [self.particle_locs[0].copy()]
+
+        while (n_obs - len(particle_locs)) > 1:
+            particle_locs.append([0, 0])
+
+        while len(particle_locs) < n_obs:
+            self.step()
+
+            particle_locs.append(self.particle_locs[0].copy())
+
+        return (
+            particle_locs.copy(),
+            self.goal_locs[0].copy(),
+            self.coil_vals.copy(),
+            self.coil_locs.copy(),
+        )
+
     def process_frame(self):
         """Displays video and associated screen elements"""
         time_stamp = (
@@ -1253,7 +1349,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
                 " ms",
             )
 
-    def run_frame(self):
+    def step(self, coil_vals = None, render = True):
         """Runs one video frame and calculates the control values"""
         time_stamp = (
             time.time()
@@ -1296,11 +1392,14 @@ class mywindow(QMainWindow, Ui_MainWindow):
             )
             time_stamp = time.time()
 
-        # If flag for automatic control is True, then get coil values using the control algorithm
-        if self.flag_automatic_control:
-            self.coil_vals = control_algorithm.get_coil_vals(
-                self.particle_locs[0], self.goal_locs[0], self.coil_vals, self.coil_locs
-            )
+        # If coil values are provided then use them. This is used to interface with the gym env.
+        if coil_vals != None or self.flag_automatic_control:
+            # If flag for automatic control is True, then get coil values using the control algorithm
+            if self.flag_automatic_control:
+                self.coil_vals = control_algorithm.get_coil_vals(
+                    self.particle_locs[0], self.goal_locs[0], self.coil_vals, self.coil_locs
+                )
+
             self.coil_vals = functions.limit_coil_vals(self.coil_vals)
             self.sendCartString(self.coil_vals)
             self.sendDiagString(self.coil_vals)
@@ -1335,12 +1434,16 @@ class mywindow(QMainWindow, Ui_MainWindow):
     def run(self):
         """Keeps running frames until video is turned off or the window is closed"""
         while self.flag_video_on:
-            self.run_frame()
+            self.step()
 
             # If program is closed, ensures that all solenoids are turned off
             if not self.isVisible():
-                self.resetVals()
-                sys.exit(app.exec_())
+                self.close()
+
+    def close(self):
+        self.resetVals()
+        sys.exit(app.exec_())
+
 
 
 if __name__ == "__main__":

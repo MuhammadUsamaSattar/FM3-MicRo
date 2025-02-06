@@ -454,6 +454,12 @@ def parse_arguments():
         default=True,
         help="Verbosity of training parameters. Default: True.",
     )
+    parser.add_argument(
+        "--env",
+        type=str,
+        default="simulator",
+        help="Environment to run the system on. Available options are 'simulator' and 'gui'. Default: 'simulator'.",
+    )
     args = parser.parse_args()
 
     # Validate arguments
@@ -493,6 +499,7 @@ if __name__ == "__main__":
     train_render_fps = args.train_render_fps
     train_render_mode = args.train_render_mode
     train_verbosity = args.train_verbosity
+    env = args.env
     ########################################################################################################################
 
     # Prepare environment keyword arguments
@@ -549,6 +556,7 @@ if __name__ == "__main__":
             "reward_type": "delta_r",
             "particle_reset": particle_reset,
             "goal_reset": goal_reset,
+            "env": env,
         },
     }
 

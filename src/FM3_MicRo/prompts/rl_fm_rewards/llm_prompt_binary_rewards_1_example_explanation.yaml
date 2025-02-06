@@ -1,28 +1,3 @@
-range: [0, 1]
-prompt: "You are provided description of a 2D workspace where location of 
-  each point can be represented as (x, y) where 'x' is the x-axis 
-  co-ordinate while 'y' is the y-axis co-ordinate. The center of the workspace 
-  is at (0,0) and the top-right corner is at (360,360).\n
-  \n
-  You need to critique the movement of the particle. You will be provided with 
-  the goal position, the previous position of the particle and the new 
-  position of the particle. If the particle moves in the direction of the 
-  goal, you assign a score of 1. If the particle either moves away from the 
-  goal or does not move closer to the goal, you assign a score of 0. You 
-  have to output the following calculations:\n
-  \n
-  The particle was located at (17.25, -160.50).\n
-  The particle is currently located at (16.50, -159.75).\n
-  The goal is currently located at (5.75, -57.00).\n
-  What is the reward score?\n
-  \n
-  1\n
-  \n
-  Explanation (Do not generate this in your output): The score is 1 since the 
-  particle started at (17.25, -160.50) and ended at (16.50, -159.75), while 
-  the goal was at (5.75, -57.00). The distance to the goal at starting 
-  position was 104.13 while the distance at ending position was 103.31. Since, 
-  103.31 < 104.13, the particle moved closer to the goal.\n
-  \n
-  You must only output either a 0 or 1. Do not output any other text in your 
-  reponse. Do not output any code or explanation.\n"
+version https://git-lfs.github.com/spec/v1
+oid sha256:4fee902eccf9f769b98c607691ff379adf8052b7dc608ed746ca5365b1966756
+size 1467

@@ -46,7 +46,7 @@ class mywindow(QMainWindow, Ui_MainWindow):
     Control and Camera function are also built within this class.
     """
 
-    def __init__(self):
+    def __init__(self, init_with_camera_on = False):
         """Initializes the class attributes such as particle location, goal locations and various flags."""
         super(mywindow, self).__init__()
         self.setupUi(self)
@@ -130,6 +130,9 @@ class mywindow(QMainWindow, Ui_MainWindow):
             self.coil_locs,
             initializations.COIL_NAMES,
         )
+
+        if init_with_camera_on:
+            self.toggleVideoDisplay()
 
     def getFileNames(self):
         """Generates video and files names and directories.
@@ -1442,7 +1445,8 @@ class mywindow(QMainWindow, Ui_MainWindow):
 
     def close(self):
         self.resetVals()
-        sys.exit(app.exec_())
+        PySpin_lib.Cam_PySpin_Stop(self.cam)
+        sys.exit()
 
 
 
@@ -1450,7 +1454,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)  # Initialization of QT app
     mywin = mywindow()
     mywin.show()
-
+    
     # If program crashes due to an error, this line resets all solenoids to zero.
     # But it causes the solenoid to be unaccessible for about 10 - 30 when program is started.
     # Need more investigation as to why this is so and more importantly how to solve this.

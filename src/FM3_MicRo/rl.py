@@ -455,7 +455,7 @@ def parse_arguments():
         help="Verbosity of training parameters. Default: True.",
     )
     parser.add_argument(
-        "--env",
+        "--env_type",
         type=str,
         default="simulator",
         help="Environment to run the system on. Available options are 'simulator' and 'gui'. Default: 'simulator'.",
@@ -499,7 +499,7 @@ if __name__ == "__main__":
     train_render_fps = args.train_render_fps
     train_render_mode = args.train_render_mode
     train_verbosity = args.train_verbosity
-    env = args.env
+    env_type = args.env_type
     ########################################################################################################################
 
     # Prepare environment keyword arguments
@@ -556,7 +556,7 @@ if __name__ == "__main__":
             "reward_type": "delta_r",
             "particle_reset": particle_reset,
             "goal_reset": goal_reset,
-            "env": env,
+            "env_type": env_type,
         },
     }
 
@@ -623,14 +623,14 @@ if __name__ == "__main__":
 
         # Save evaluation results and plot
         npz_plotter = NPZPlotter(
-            npz_file=os.path.join(save_dir, "evaluations.npz"),
+            npz_files=os.path.join(save_dir, "evaluations.npz"),
             text_verbosity=text_verbosity,
         )
 
         if text_verbosity:
             npz_plotter.print()
 
-        npz_plotter.save()
+        npz_plotter.save(save_dir)
 
         # Save the model
         test_model_path = os.path.join(save_dir, "model")

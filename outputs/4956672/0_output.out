@@ -1,6 +1,0 @@
-####################
-/var/spool/slurmd/job4956672/slurm_script
-####################
---batch-size 64 --exc train --goal-reset False --num-eval 100 --reward-type delta_r --rollout-steps 2048 --text-verbosity True --total-timesteps 2500000 --train-episode-time-limit 15 --train-fps 10 --train-render-fps 120 --train-verbosity True
-####################
-

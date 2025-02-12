@@ -15,10 +15,11 @@ from gymnasium_env.envs.Library.vlm import VLM
 from gymnasium_env.envs.System import initializations
 from gymnasium_env.envs.System.Library import functions
 from gymnasium_env.envs.System.simulator import Simulator
+from gymnasium_env.envs.System.simulator import Simulator
 
 package_spec = importlib.util.find_spec("PySpin")
 if package_spec:
-    from gymnasium_env.envs.System.gui import mywindow
+    from gymnasium_env.envs.System.camera_pygame import CameraPygame
 
 
 class SingleParticleNoCargo(gym.Env):
@@ -46,7 +47,7 @@ class SingleParticleNoCargo(gym.Env):
         particle_reset: bool = True,
         goal_reset: bool = True,
         goal_time: float = 1.0,
-        env: str = "simulator",
+        env_type: str = "simulator",
     ):
         """Initializes the environment.
 
@@ -71,12 +72,11 @@ class SingleParticleNoCargo(gym.Env):
         self.metadata["train_fps"] = train_fps
 
         # Initialize the env
-        if env == "simulator":
+        if env_type == "simulator":
             self.env = Simulator(render_fps)
-        elif env == "gui":
+        elif env_type == "gui":
             app = QApplication(sys.argv)  # Initialization of QT app
-            self.env = mywindow()
-            self.env.show()
+            self.env = CameraPygame(init_with_camera_on=True)
 
         # Define observation space: 2D particle location (-r to r) and 2D goal location (-r to r)
         r = initializations.SIM_SOL_CIRCLE_RAD
@@ -144,6 +144,7 @@ class SingleParticleNoCargo(gym.Env):
         self.inside_goal_timer = float('inf')
         self.done = False
         self.goal_time = goal_time
+        self.env_type = env_type
 
     def reset(
         self,
@@ -314,6 +315,12 @@ class SingleParticleNoCargo(gym.Env):
             bool: Done boolen value.
         """
         done = False
+
+        if self.env_type == "simulator":
+            accuracy = initializations.SIM_MULTIPLE_GOALS_ACCURACY
+        elif self.env_type == "gui":
+            accuracy = initializations.GUI_MULTIPLE_GOALS_ACCURACY
+
         if (
             functions.distance(
                 self.obs["particle_locs"][-1][0],
@@ -321,7 +328,7 @@ class SingleParticleNoCargo(gym.Env):
                 self.obs["goal_loc"][0],
                 self.obs["goal_loc"][1],
             )
-            < initializations.SIM_MULTIPLE_GOALS_ACCURACY
+            < accuracy
         ):
             if not self.inside_goal_bool:
                 self.inside_goal_bool = True

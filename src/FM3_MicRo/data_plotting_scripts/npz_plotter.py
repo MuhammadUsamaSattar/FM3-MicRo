@@ -13,7 +13,6 @@ class NPZPlotter:
             text_verbosity (bool, optional): Verbosity of textual outputs. Defaults to False.
         """
         file_path = Path(__file__).resolve().parent.parent.parent.parent
-        file_path = file_path / "src/FM3_MicRo/control_models"
         self.text_verbosity = text_verbosity
         
         # If a single file path is provided, convert it to a dictionary without labels
@@ -57,7 +56,6 @@ class NPZPlotter:
         """
         self._gen_plot()
         os.makedirs(path, exist_ok=True)
-        output_dir = os.path.dirname(next(iter(self.npz_files.values())))
         output_path = os.path.join(path, "rewards_plot.png")
         plt.savefig(output_path)
         if self.text_verbosity:
@@ -97,29 +95,107 @@ class NPZPlotter:
 
 
 if __name__ == "__main__":
-    npz_files_model_sizes = {
-        "QWEN-3b-Instruct": "2025-01-20_12-13-39_llm_triton_qwen_3b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "QWEN-7b-Instruct": "2025-01-21_22-07-43_llm_triton_qwen_7b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "QWEN-14b-Instruct": "2025-01-24_14-26-37_llm_triton_qwen_14b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "QWEN-32b-Instruct": "2025-01-31_11-20-05_llm_triton_qwen_32b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "sparse": "2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "delta_r": "2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    npz_files_zero_shot_binary = {
+        "QWEN-3b-Instruct": "src/FM3_MicRo/control_models/2025-01-20_13-49-52_llm_triton_qwen_3b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-7b-Instruct": "src/FM3_MicRo/control_models/2025-01-22_04-50-18_llm_triton_qwen_7b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-14b-Instruct": "src/FM3_MicRo/control_models/2025-01-24_14-30-15_llm_triton_qwen_14b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-32b-Instruct": "src/FM3_MicRo/control_models/2025-01-31_15-25-46_llm_triton_qwen_32b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_zero_shot_continuous = {
+        "QWEN-3b-Instruct": "src/FM3_MicRo/control_models/2025-01-20_12-12-47_llm_triton_qwen_3b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-7b-Instruct": "src/FM3_MicRo/control_models/2025-01-21_11-13-25_llm_triton_qwen_7b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-14b-Instruct": "src/FM3_MicRo/control_models/2025-01-23_21-46-11_llm_triton_qwen_14b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-32b-Instruct": "src/FM3_MicRo/control_models/2025-02-04_22-27-54_llm_triton_qwen_32b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_five_shot_binary = {
+        "QWEN-3b-Instruct": "src/FM3_MicRo/control_models/2025-01-21_05-48-34_llm_triton_qwen_3b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-7b-Instruct": "src/FM3_MicRo/control_models/2025-01-23_09-59-26_llm_triton_qwen_7b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-14b-Instruct": "src/FM3_MicRo/control_models/2025-01-28_08-31-10_llm_triton_qwen_14b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-32b-Instruct": "src/FM3_MicRo/control_models/2025-02-01_23-47-49_llm_triton_qwen_32b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_five_shot_continuous = {
+        "QWEN-3b-Instruct": "src/FM3_MicRo/control_models/2025-01-20_12-12-49_llm_triton_qwen_3b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-7b-Instruct": "src/FM3_MicRo/control_models/2025-01-21_11-13-25_llm_triton_qwen_7b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-14b-Instruct": "src/FM3_MicRo/control_models/2025-01-24_14-12-14_llm_triton_qwen_14b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-32b-Instruct": "src/FM3_MicRo/control_models/2025-01-31_07-47-37_llm_triton_qwen_32b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_one_shot_with_example_binary = {
+        "QWEN-3b-Instruct": "src/FM3_MicRo/control_models/2025-01-21_06-30-08_llm_triton_qwen_3b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        #"QWEN-7b-Instruct": "src/FM3_MicRo/control_models/2025-02-08_17-41-25_llm_triton_qwen_7b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-14b-Instruct": "src/FM3_MicRo/control_models/2025-01-28_09-47-00_llm_triton_qwen_14b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-32b-Instruct": "src/FM3_MicRo/control_models/2025-02-02_00-58-18_llm_triton_qwen_32b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_one_shot_with_example_continuous = {
+        "QWEN-3b-Instruct": "src/FM3_MicRo/control_models/2025-01-20_12-13-39_llm_triton_qwen_3b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-7b-Instruct": "src/FM3_MicRo/control_models/2025-01-21_22-07-43_llm_triton_qwen_7b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-14b-Instruct": "src/FM3_MicRo/control_models/2025-01-24_14-26-37_llm_triton_qwen_14b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "QWEN-32b-Instruct": "src/FM3_MicRo/control_models/2025-01-31_11-20-05_llm_triton_qwen_32b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_3b = {
+        "continuous zero-shot": "src/FM3_MicRo/control_models/2025-01-20_12-12-47_llm_triton_qwen_3b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous five-shot": "src/FM3_MicRo/control_models/2025-01-20_12-12-49_llm_triton_qwen_3b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous one-shot with example": "src/FM3_MicRo/control_models/2025-01-20_12-13-39_llm_triton_qwen_3b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary zero-shot": "src/FM3_MicRo/control_models/2025-01-20_13-49-52_llm_triton_qwen_3b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary five-shot": "src/FM3_MicRo/control_models/2025-01-21_05-48-34_llm_triton_qwen_3b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary one-shot with example": "src/FM3_MicRo/control_models/2025-01-21_06-30-08_llm_triton_qwen_3b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
+
+    npz_files_7b = {
+        "continuous zero-shot": "src/FM3_MicRo/control_models/2025-01-21_11-13-25_llm_triton_qwen_7b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous five-shot": "src/FM3_MicRo/control_models/2025-01-21_11-13-25_llm_triton_qwen_7b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous one-shot with example": "src/FM3_MicRo/control_models/2025-01-21_22-07-43_llm_triton_qwen_7b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary zero-shot": "src/FM3_MicRo/control_models/2025-01-22_04-50-18_llm_triton_qwen_7b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary five-shot": "src/FM3_MicRo/control_models/2025-01-23_09-59-26_llm_triton_qwen_7b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        #"binary one-shot with example": "src/FM3_MicRo/control_models/2025-02-08_17-41-25_llm_triton_qwen_7b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
     }
 
     npz_files_14b = {
-        "continuous zero-shot": "2025-01-23_21-46-11_llm_triton_qwen_14b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "continuous five-shot": "2025-01-24_14-12-14_llm_triton_qwen_14b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "continuous one-shot with example": "2025-01-24_14-26-37_llm_triton_qwen_14b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "binary zero-shot": "2025-01-24_14-30-15_llm_triton_qwen_14b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "binary five-shot": "2025-01-28_08-31-10_llm_triton_qwen_14b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "binary one-shot with example": "2025-01-28_09-47-00_llm_triton_qwen_14b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "sparse": "2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
-        "delta_r": "2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous zero-shot": "src/FM3_MicRo/control_models/2025-01-23_21-46-11_llm_triton_qwen_14b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous five-shot": "src/FM3_MicRo/control_models/2025-01-24_14-12-14_llm_triton_qwen_14b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous one-shot with example": "src/FM3_MicRo/control_models/2025-01-24_14-26-37_llm_triton_qwen_14b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary zero-shot": "src/FM3_MicRo/control_models/2025-01-24_14-30-15_llm_triton_qwen_14b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary five-shot": "src/FM3_MicRo/control_models/2025-01-28_08-31-10_llm_triton_qwen_14b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary one-shot with example": "src/FM3_MicRo/control_models/2025-01-28_09-47-00_llm_triton_qwen_14b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
     }
 
-    npz_file = "2025-01-23_21-46-11_llm_triton_qwen_14b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz"
+    npz_files_32b = {
+        "continuous zero-shot": "src/FM3_MicRo/control_models/2025-02-04_22-27-54_llm_triton_qwen_32b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous five-shot": "src/FM3_MicRo/control_models/2025-01-31_07-47-37_llm_triton_qwen_32b_continuous_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "continuous one-shot with example": "src/FM3_MicRo/control_models/2025-01-31_11-20-05_llm_triton_qwen_32b_continuous_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary zero-shot": "src/FM3_MicRo/control_models/2025-01-31_15-25-46_llm_triton_qwen_32b_binary_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary five-shot": "src/FM3_MicRo/control_models/2025-02-01_23-47-49_llm_triton_qwen_32b_binary_rewards_5_examples_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "binary one-shot with example": "src/FM3_MicRo/control_models/2025-02-02_00-58-18_llm_triton_qwen_32b_binary_rewards_1_example_explanation_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "sparse": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_sparse_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+        "delta_r": "src/FM3_MicRo/control_models/2025-01-23_15-57-24_delta_r_1000000-steps_5-obs_ep-time-360.0/evaluations.npz",
+    }
 
-    plotter = NPZPlotter(npz_files=npz_files_model_sizes, text_verbosity=True)
+    npz_file = "src/FM3_MicRo/control_models/2025-02-04_22-27-54_llm_triton_qwen_32b_continuous_rewards_zero_shot_1000000-steps_5-obs_ep-time-360.0/evaluations.npz"
+
+    plotter = NPZPlotter(npz_files=npz_files_five_shot_continuous, text_verbosity=True)
     plotter.print()
     #plotter.save()
     plotter.plot()

@@ -58,4 +58,4 @@ def iden_blob_detect(im, particle_locs, particle_rads):
     else:
         blob_lost = True
 
-    return blob_lost, particle_locs, particle_rads
+    return blob_lost, [particle_locs[0]], [particle_rads[0]]

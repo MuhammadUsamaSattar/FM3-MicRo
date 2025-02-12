@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=muhammad.sattar@aalto.fi
 #SBATCH --job-name=gen_rew_map
-#SBATCH --array=0-2
+#SBATCH --array=0,2
 
 module restore FM3-MicRo
 source activate FM3-MicRo

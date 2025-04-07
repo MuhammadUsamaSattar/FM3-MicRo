@@ -1,5 +1,5 @@
 # Note
-This repository is a copy of the final version of the project hosted on Aalto's GitLab for public access due to which commit histories are missing.
+This repository is a copy of the final version of the project hosted on Aalto's GitLab for public access due to which merge histories are missing.
 
 # Installation
 

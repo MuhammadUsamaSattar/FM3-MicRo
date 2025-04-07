@@ -10,7 +10,7 @@ authors = [
   { name="Muhammad Usama Sattar", email="usamasattar.3347@gmail.com" },
 ]
 
-description = "Foundation Model based Magnetic Manipulation in MICro-RObotics. Ferromagnetic particles are controlled in a 2D plane at air-water interface using Foundation Model based methods."
+description = "Application of Foundation Model Based Methdos in Magnetically Manipulated Micro-Robots. Ferromagnetic particles are controlled in a 2D plane at air-water interface using LLM Augmented RL."
 readme = "README.md"
 
 classifiers = [
@@ -19,7 +19,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-requires-python = "== 3.12"
+requires-python = "== 3.10"
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic]

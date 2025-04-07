@@ -1,6 +1,6 @@
 import subprocess
-
 from pathlib import Path
+
 
 # Define the git log command
 git_log_command = ["git", "log", "--pretty=- %Cblue**%h:**%Creset %s"]

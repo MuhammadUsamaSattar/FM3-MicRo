@@ -1,7 +1,6 @@
-import os
-import re
 import subprocess
 from pathlib import Path
+
 
 # Define your specific Git repository and the subdirectory to handle
 git_repo_url = "git+https://github.com/MuhammadUsamaSattar/FM3-MicRo.git"

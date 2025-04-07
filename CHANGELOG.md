@@ -1,3 +1,7 @@
+- **bc431d8:** Attempted to convert .json reward maps to git lfs. Added camera_pygame.py to test out the trained RL model on the experimental setup. npz_plotter.py can now take multiple files and plot them on the same plot.
+- **70883b2:** Modified gui.py to interface with gym environment
+- **2d399db:** Added reward maps .yaml file to git lfs storage
+- **98f675f:** Data buffer contains only contains a single datapoint to prevent VRAM overflow in reward_map.py. Removed bug that treated the list instead of the str in the list as the output of the llm for cases where explanation was also outputted in rl.py and SingleParticleNoCargo.py. Fixed repeated sentence in llm_prompt_binar_rewards_1_example_explanation.yaml. Modified few scripts to run for only failed sims, these will be corrected in the next commits.
 - **b325802:** Added plot saving functionality to reward_map.py
 - **6787067:** Added reward_map.py script that creates the reward map and plots it
 - **a43f8cc:** Missed 'System' folder in previous commit

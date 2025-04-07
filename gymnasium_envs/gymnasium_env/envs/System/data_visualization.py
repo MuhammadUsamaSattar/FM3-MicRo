@@ -702,9 +702,16 @@ def plotDataTrendByCurrent(data, number_of_dataset_plots_to_show):
             label=round(key / (number_of_dataset_plots_to_show), 2),
         )  # Plots blank data for each current value so that legend is only set once
 
-    plt.xlabel("Time (s)")
-    plt.ylabel("Radial Distance (pixels)")
-    plt.legend()
+    font = {
+        'size': 24,
+        }
+    tick_fontsize=16
+
+    plt.xlabel("Time (s)", font)
+    plt.ylabel("Radial Distance (pixels)", font)
+    plt.xticks(fontsize=tick_fontsize)
+    plt.yticks(fontsize=tick_fontsize)
+    plt.legend(title="Current Values (Scaled)", title_fontsize=tick_fontsize, fontsize=tick_fontsize)
     # plt.ylim(0, 100)
     plt.show()
 
@@ -739,11 +746,11 @@ if __name__ == "__main__":
     types = ["ML", "SINDy"]
     type = types[0]  # types[0] for "ML" model and types[1] for "SINDy" model
 
-    model = createPredictor(data, current_vals_to_train_on, type=type)
+    #model = createPredictor(data, current_vals_to_train_on, type=type)
 
     # Uncomment the following two lines and comment the "model = createPredictor(...)" line to see the result on an existing saved model
-    #with open('Models/' + 'Predict_rdot_from_I_r_R2_0.916_No_0.0_to_0.15_shuffled' + '.pkl', 'rb') as f:
-    #   model = pickle.load(f)
+    with open('gymnasium_envs/gymnasium_env/envs/System/Models/' + 'Predict_rdot_from_I_r_R2_0.916_No_0.0_to_0.15_shuffled' + '.pkl', 'rb') as f:
+       model = pickle.load(f)
 
 
     t_range = [0, 4]  # Bounds of the time for generated plots in plotModel()

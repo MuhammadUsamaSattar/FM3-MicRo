@@ -4,19 +4,18 @@ import numpy as np
 
 
 class CSVPlotter:
-    def __init__(self, file_path):
-        """
-        Initialize the CSVPlotter with the path to the CSV file.
+    def __init__(self, file_path: str) -> None:
+        """Initialize the CSVPlotter with the path to the CSV file.
 
-        Parameters:
-        file_path (str): Path to the CSV file.
+        Args:
+            file_path (str): Path to the CSV file.
         """
         self.file_path = file_path
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Reads the CSV file, cleans the data, computes a trendline, and plots
-        Episode vs. Ratio with the trendline.
+        Episode vs. Distance Ratio with the trendline.
         """
         # Load the CSV file
         data = pd.read_csv(self.file_path)

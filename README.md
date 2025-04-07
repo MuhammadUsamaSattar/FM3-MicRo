@@ -1,190 +1,155 @@
-# Requirements
-python==3.10
+# Installation
 
-cuda==12.4
+The code can be used for training new models or testing them. Testing requires fewer dependencies and does not need a CUDA-supported GPU.
 
-All libraries in requirements.txt
+## Training
 
-Spinnaker python library is installed from the requirements.txt file while Spinnaker SDK needs to be installed from: https://www.teledynevisionsolutions.com/en-150/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/#anchor8
+Ensure the following dependencies are installed:
 
-**`NOTE: This description is for the summer job project. This needs to be updated once the thesis matures a bit.`**
+- Python 3.10  
+- [CUDA Toolkit 12.4](https://developer.nvidia.com/cuda-12-4-0-download-archive)  
+- [requirements.txt (install with `pip install -r`)](../FM3-MicRo/requirements.txt)  
+- [FlashAttention (optional, speeds up inference for long input sequences)](https://github.com/Dao-AILab/flash-attention)  
 
-# Particle Mainpulator
-This repository is the code base for Micro- and Nano-robotics Course's Lab offered at by Robotic Instruments Lab at Aalto University, Finland. 
+To start training, modify the `.\run-scripts\train_script_*` files or execute:
+```
+python src\FM3_MicRo\rl.py --exc train
+```
+For a list of available options and their description, use:
+```
+python src\FM3_MicRo\rl.py --help
+```
 
-## Installation
-There is no functionality to `pip install` the package right now. For installation, the user has to manually download the code and extract it in their desired repository.
+## Testing
+Testing does not require any of the `torch` libraries and `bitsandbytes` library, which can be removed from `requirements.txt`. If you do not have a CUDA-supported GPU or have not installed the CUDA Toolkit, their installation may fail. Other dependencies can remain since their install time and size are negligible.
 
-The GUI part of the code can only be run on the lab computer since it needs the Arduinos and FLIR camera. Other components can be run from any computer.
+Required dependencies:
 
-The simulator is part of the complete Particle Manipulator package and uses many of the same dependencies as the experimental setup program (gui.py). Therefore, it is recommended to copy the entire code repository rather than individual files. Nonetheless, the instructions also detail which individual files need to be copied to allow just the simulator to run. 
+- Python 3.10
+- [requirements.txt (install with `pip install -r`)](../FM3-MicRo/requirements.txt)
 
-The instructions are applicable for both Windows and Linux; where there is a difference between the two, it is clearly specified.
+To start testing, modify the `.\run-scripts\test_script.bat` file or execute:
+```
+python src\FM3_MicRo\rl.py --exc test
+```
 
-1.	Copy the code to your PC’s drive. You can either copy the entire package or just the required files for the simulator. 
-If you want to copy just the required files, the hierarchy for this selective package is:
-    - {Package Folder}
-        -	Library
-            - data_extractor.py
-            - functions.py
-            - pygame_recorder.py
-        - Models
-            - Predict_rdot_from_I_r_R2_0.916_No_0.0_to_0.15_shuffled
-        - control_algorithm.py
-        - initializations.py
-        - path_plotter.py
-        - simulator.py
-2.	If you have python installed on your PC, you can skip this step.
+For available options, use:
+```
+python src\FM3_MicRo\rl.py --help
+```
 
-    - **Python Windows Installation:**
+# Introduction
+This repository contains Python code, `.bat` scripts, `.sh` SLURM scripts, and media files for the thesis **"Application of Foundation Model Based Methods in Micro-Robotics"** at the Robotic Instruments Lab, Aalto University by Muhammad Usama Sattar during year 2025.
 
-        https://www.python.org/downloads/
-    
-        To verify if the install was successful, you can run the following command in command prompt: 
-    
-        `python3 -–version`
+We employ a novel RL technique where LLM acts as reward generator to control micro-robots via magnetic fields. The LLM receives the previous state, current state, and goal. This information is used to generate the reward value for each timestep. The idea is that LLMs can identify relevant workspace features that indicate good actions, eliminating the need for manual reward design.
 
-    - **Python Linux Installation:**
+For more details, refer to: [Reward Design with Language Models](https://arxiv.org/pdf/2303.00001).
 
-        Usually, python is pre-installed on Linux systems. You can verify if there is an installation by running the command in command prompt:
+# Magnetic Manipulation Setup and Simulator
+The setup consists of 8 solenoids arranged in a circular configuration. A ferromagnetic particle is placed within the solenoid circle. Applying current to a solenoid attracts the particle toward it which enables precise particle placement.
 
-        `$ python3 –-version`
+<p style="margin-bottom: 20px;">
+    <div style="display: flex; justify-content: center; gap: 18px;">
+        <img src="./media/Misc/CAD%20Assembly.jpg" alt="CAD model of the assembly" width="280">
+        <img src="./media/Misc/CAD%20Solenoid%20Block.jpg" alt="Section view of the solenoid block" width="280">
+    </div>
+</p>
 
-        If the command returns no valid python installation, you can install it by following this tutorial:
+<div align="center">
+    <img src="./media/Misc/Experimental%20Setup.jpg" alt="Picture of the system" width="600">
+</div>
 
-        https://docs.python-guide.org/starting/install3/linux/
+## System Mechanics
 
-3.  You can write and run python code using most simple text editor     programs. But it is better to have a proper IDE since they make writing code and debugging it easier. We recommend Microsoft Visual Studio Code (VS Code), but you can install any other IDE you want.
+The particle is accelerated toward the solenoids by magnetic force. Fluid drag from the water surface reduces its momentum while the meniscus effect pulls the particle toward the petri dish center, though this is negligible due to the dish's size.
 
-    https://code.visualstudio.com/download
+Thus, the system dynamics are governed by only magnetic and drag forces, as shown below:
 
-4.  Run VS Code and go to the Extensions tab by clicking on the correct icon on the left side of the screen. Alternatively, you can use the shortcut *Ctrl+Shift+X*. Install Python extension which allows you to use python debugger and functionalities within your workspace. If you are using a different IDE, you will have to consult its documentation on how to use Python on it.
-5.  *pip* is a package management tool for python which allows you to download, install, upgrade and uninstall various python packages. Generally, installing python automatically installs *pip* as well, but if you do not have *pip*, you can install it by following the tutorial under **get-pip** heading for your OS:
+<div align="center">
+    <img src="./media/Misc//System%20Mechanics.png" alt="Diagram of system mechanics" width="600">
+</div>
 
-    https://pip.pypa.io/en/stable/installation/#get-pip-py
+## Simulator
 
-6.	You need the following libraries to run the simulator and path plotter:
-    - pygame
-    - numpy
-    - scipy
-    - scikit-learn
-    - opencv
-    - matplotlib
+The simulator is built using `pygame` and mimics the experimental setup through a deep-learning-trained model. It enables simultaneous RL training on an HPC cluster.
 
-    You can install the required libraries using the `pip install`. If you are using Visual Studio Code, you can go to the Terminal tab on the bottom of the screen. Alternatively, you can use the shortcuts:
-    - **Windows Shortcut:** *Ctrl+`* on English keyboard layout or *Ctrl+ö* on Finnish keyboard layout. 
+<div align="center">
+    <img src="./media/Misc//Simulator.png" alt="Screenshot of the simulator main window">
+</div>
 
-    - **Linux Shortcut:** *Ctrl+`* on English keyboard layout or *Ctrl+Shift+´* on Finnish keyboard layout.
-    
-    Then run the following commands one-by-one to install the required libraries:
+# Implementation
+For RL, we use **PPO** from `Stable-Baselines3`. Local LLM inference is achieved through `Transformers` libary. We utilize the following **QWEN2.5-Instruct** models:
 
-    ```
-    pip install pygame
-    pip install numpy
-    pip install scipy
-    pip install scikit-learn
-    pip install opencv-python
-    pip install matplotlib
-    ```
+- **3B**
+- **7B**
+- **14B**
+- **32B**
 
-    There might be older versions of the libraries already installed on the PC, but it is best to upgrade them to prevent running into issues. In such cases, add *-U* after the pip install command to upgrade the libraries.
+The problem has been simplified by keeping the goal position at the center for every episode. Total training timesteps are 1M. The environment provides two types of rewards:
 
-    `pip install -U {Library}`
+- **Global Rewards:** Rewards that do not directly relate to local movements of the particle such as amount of time spent in an episode, staying in vicinity of the goal and achieving the goal.
+- **Local Rewards:** Rewards that directly relate to local movements of the particle. In our baseline, **delta_r**, this reward is given by normalized change in radial distance r, while in **LLM Augmented RL**, this reward is provided by the LLM.
 
-    For example:
+<div align="center">
+    <img src="./media/Misc//RL%20LLM.jpg" alt="Schematic of LLM Augmented RL" width="600">
+</div>
 
-    `pip install -U numpy`
+The model has been trained using Triton HPC cluster provided by Aalto University's School of Science as part of the "Science-IT" project. We employed nodes with H100 GPUs due to their large VRAM and high clock speeds.
 
-7.	You can now run the *simulator.py* and *path_plotter.py* files using *Ctrl+F5*. You might be prompted to select an interpreter at the top of the screen. You can select the latest Python version. 
+3 types of prompts have been utilized:
+- **Zero-shot:** Description of the workspace and task requirements are provided.
+- **Five-shot:** Description of the workspace and task requirements are provided along with 5 examples.
+- **One-shot with Explanation:** Description of the workspace and task requirements are provided along with one example and its explanation.
 
+Each prompt has been further differnetiated by possible output values:
+- **Binary:** LLM can output either a 0 or 1.
+- **Continuous:** LLM can output any integer from -9 to +9.
 
-## Description
-The setup consists of 8 solenoid arranged in a circular arrangement. A ferromagnetic particle is placed within the circle traced out by these solenoids. Application of current at any solenoid allows it to attract the particle towards itself. Simultaneous smart acutation of these solenoid can allow placement of the particle accurately.
+# Results
+We only provide key results in the markdown. You can find the complete dataset of plots in `.\media\`.
+## Reward Maps
+Reward Maps illustrate the reward values for moving from a paritcular location to another. The shape of the maps reveal the variation in performance with various prompts and model sizes. Key features are:
 
-![CAD model of the system](/assets/Description/CAD.png)
+- **Black Cross:** Goal Position
+- **Black Dot:** Initial Particle Position
+- **Colored Dot:** Final Particle Position
 
-![Picture of the system](/assets/Description/Picture.png)
+<div align="center">
+    <img src="./media/Reward%20Maps/Zero-shot%20at%20(112,%20112).jpg" alt="Reward Map for Zero-shot prompt at (112, 122)" width="600">
+</div>
 
-### System Mechanics
-The particle is accelerated towards the solenoids through magnetic force. The fluid drag while passing through the water surface reduces the particle momentum. Additionally, the meniscus of the water surface pulls the particle to the center of the petri dish, but due to the relatively large size of our petri dish, this effect is negligible.
+<div align="center">
+    <img src="./media/Reward%20Maps/Five-shot%20at%20(112,%20112).jpg" alt="Reward Map for Five-shot prompt at (112, 122)" width="600">
+</div>
 
-Therefore, the equation of motion only consists of the magnetic and drag force. The governing equation of this system is given in the following figure:
+<div align="center">
+    <img src="./media/Reward%20Maps/One-shot%20with%20Explanation%20at%20(112,%20112).jpg" alt="Reward Map for One-shot with Explanation prompt at (112, 122)" width="600">
+</div>
 
-![Diagram of system mechanics](/assets/Description/System%20Mechanics.png)
+We observe the following trends in the figures:
 
-## Code
-Broadly, this project has 4 main components:
+- Performance improves with increasing size of model
+- One-shot with Explanation > Five-shot > Zero-shot
+- Binary Rewards > Continuous Rewards
 
-### GUI
-The GUI consists of the code and its dependencies which allows the user to interact with the arduinos and the camera. Therefore, this part of the package allows user to work with the experimental setup. It is written on QT.
+## Model Evaluations
+Each model was tested 100 times during its training utilizing **delta_r** rewards to mantain consistency.
 
-![Screenshot of the main window](/assets/GUI/Main%20Screen.png)
+<div align="center">
+    <img src="./media/Model%20Evaluations/Prompts_32B.png" alt="Model Evaluations for QWEN-32B-Insturct" width="600">
+</div>
 
-The buttons and their functionalities are as follows:
-- **Video:** Toggles video.
-- **Grid:** Toggles grid.
-- **Recording:** Toggles recording. The video file is saved at *~/Data/Experiment_Data_{Timestamp of Start of Program}* where *~* is the directory of your *gui.py* file. Each recording is labelled *Recording_{number}.avi*.
-- **Take Snapshot:** Takes a screenshot of the current camera view. The video file is saved at *~/Data/Experiment_Data_{Timestamp of Start of Program}* where *~* is the directory of your *gui.py* file. Each recording is labelled *Snapshot_{number}.jpg*.
-- **Object Detection:** Toggles object detection. The program is initialized with object location at top-right of the screen.
-- **Show Solenoid State:** Shows the reference positions of the solenoids and color according to the amount of current.
-- **Show Goal:** Toggles goal position. The program is initialized with goal at center of the screen.
-- **Show Goal Vector:** Toggles the vector from particle location to the goal location.
-- **Manual Control:** Allows user to manually set current values in percentage.
-- **Reset:** Resets the value of each solenoid to 0.0.
-- **Automatic Control:** Toggles automatic control algorithm and turns on object detection. It uses the control algorithm in *control_algorithm.py* file.
-- **Multiple Goals Mode/Execute Goal Motion/Cancel Motion:** Turning on *Multiple Goals Mode* allows user to define multiple goals which are then achieved through automatic control one by one. There is no limit on the number of goals that can be set by the user. 
-After starting the *Multiple Goals Mode*, the button label changes to *Execute Motion* which allows the user to instruct the program to start executing the set goals
-Once the Execute Motion button has been pressed, the control algorithm executes the goals one by one. If no goal was added, then the goal that was set before pressing the button is taken as the current goal and *Multiple Goals Mode* is cancelled
-Once the execution of the motion has been started, the user can observe that the button label changes to *Cancel Motion* which allows the user to cancel the *Multiple Goals Motion*, if needed.
-On completion or cancellation of the motion, the label changes back to *Multiple Goals Mode* which allows the user to set another series of goals.
-- **Set Goal/Add Goal:** Sets/Adds the entered *X* and *Y* positions as goals depending upon whether *Multiple Goals Mode* is turned on or off.
-- **Log Data:** Toggles data logging which records the time, particle position, current goal, solenoid current values and solenoid locations. The log data is stored at *~/Data/Experiment_Data_{Timestamp of Start of Program}* where *~* is the directory of your *gui.py* file. Each log is labelled *{number}_Log_Data.csv*.
-- **Solenoid Calibration:** Toggles solenoid calibration scheme which measures the time, particle position and solenoid current for every solenoid to determine the mechanics of the system. The calibration data is stored in *~/Data/Experiment_Data_{Timestamp of Start of Program}* where *~* is the directory of your *simulator.py* file. Each calibration is labelled *{number}_Solenoid_Calibration_Data.csv*.
-- **Demagnetize Solenoids:** Demagnetizes each solenoid by alternating between decreasing magnitudes of positive and negative current values.
+<div align="center">
+    <img src="./media/Model%20Evaluations/Model%20Sizes_Binary_One_Shot.png" alt="Model Evaluations for Binary One-shot with Explanation" width="600">
+</div>
 
-### Simulator
-The simulator consists of a modelled pygame program which imitates the experimental setup. The purpose is to allow the user to develop and test their own control algorithm in a controlled environment.
+We observe the same behaviours in evaluations as described in Reward Maps. Notably **Binary One-shot with Explanation** performs even better than our baseline **delta_r**. This underscore the benefits of utilizing LLMs as reward generators due to their ability to extract additional features from the workspace resulting in improved convergence. Furthermore, utilizing **QWEN-32B-Instruct** allows even **Zero-shot** to converge, suggesting that at sufficient model sizes, accurate reward values can be generated without examples and/or explanations.
 
-![Screenshot of the simulator main window](/assets/Simulator/Main%20Window.png)
+## Training Times
+<div align="center">
+    <img src="./media/Training%20Times/All%20Sizes.jpg" alt="Training Times for Model Sizes" width="600">
+</div>
 
-The following interactions are availabe in the simulator:
+The trend in the plot is counter-intuitive. Generally, larger models take more time for inference. Only possible explanation that we could find for the observed trend is a better capability of larger models to utilize GPU and software optimizations.
 
-- Move the particle with *left-click*. The particle cannot be moved outside the circle traced by the solenoids.
-- Move the goal with *right-click*. The goal cannot be moved outside the circle formed by the solenoids.
-- Left clicking on the position text of the particle and goal at the bottom-left of the screen allows user to type in the value for the respective parameter. The *X* and *Y* co-ordinates should be separated by a comma. The particle and goal cannot be moved outside the circle formed by the solenoids.
-- Press *m* to start *Multiple Goals Mode*, which allows you to place multiple goals. Once you have placed all the goals, press *m* to start executing the motion.
-- Press *l* to start logging data which stores the time, particle position, current goal, solenoid current values and solenoid locations. Press *l* again to stop logging data. The log data is stored at *~/Data/Simulator_Data_{Timestamp of Start of Program}* where *~* is the directory of your *simulator.py* file. Each log is labelled *{number}_Log_Data.csv*.
-- Press *v* to start recording the simulator screen. Press *v* again to stop the recording and save it. The recording is stored at *~/Data/Simulator_Data_{Timestamp of Start of Program}* where *~* is the directory of your *simulator.py* file. Each recording is labelled *Recording_{number}.avi*.
-
-### Data Visualization and Modelling
-The step that links the Experimental setup and Simulator is the data modelling part of the code. This takes in the raw data recorded from experimental setup, cleans it up and fits a model to it.
-
-Initially, SINDy approach was taken but it failed to provide good results.Currently, a Deep Learning model is fitted on the data which has 3 hidden layers with 10 nodes each. The R2 score for this DL model is ~0.92.
-
-The results were mapped in a 3D plot which shows the predicted velocity depending upon the distance from the solenoid and the applied current.
-
-![3D plot of the model over different current and position values](/assets/Modelling/3D%20Plot.png)
-
-### Path Plotter
-Path Plotter allows the user to convert the log data files from the simulator and GUI into 2D plots showing the path taken by the particle and the various associated goals.
-
-![Screenshot of a sample output generated from recorded log data](/assets/Path%20Plotter/Plot.png)
-
-To plot your own log data files, you need to open the *path_plotter.py* file that you copied. Then you need to put the path of your file in the filename variable.
-The path can either be:
-
-- Relative to the *path_plotter.py* file in which case you can have an example input of `Data/Simulator_Data/1_Log_Data.csv` which will look for a folder called *Data* in the same folder as *path_plotter.py*. Once found, it will look for the folder *Simulator_Data* and within it *1_Log_Data.csv*
-- A global path like `C:/MyFiles/PlotFiles/1_Log_Data.csv`
-
-Note that you need to include the extension *.csv* in the filename.
-
-The output opens in a *matplotlib* window. You can pan and zoom in the window. Additionally, you can save the output by pressing *Ctrl+S* or clicking the save button on top of the screen.
-
-## Contacts
-- The PySpin Wrapper and Arduino code was written by [Jiangkun Yu](mailto:jiangkun.yu@aalto.fi).
-- The orignal GUI and control algorithm code (the first commit of this project) was written by [Erik Skeel](mailto:erik.skeel@aalto.fi) in Summer 2023. He also modified the Arduino code to suit our application.
-- All other modules were developed by [Usama Sattar](mailto:muhammad.sattar@aalto.fi) in summer 2024. He also heavily modifed the GUI file. Therefore, he is the main developer of the latest version of the code.
-- The project was supervised by [Artur Kopitca](mailto:artur.kopitca@aalto.fi) during all development phases.
-- The project was developed under general group level supervision of [Quan Zhou](mailto:quan.zhou@aalto.fi) during all development phases.
-
-You should direct any questions or concerns towards Artur since other contributors are either not related to the project anymore or provided high level supervision.
+## Videos

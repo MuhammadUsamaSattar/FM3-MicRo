@@ -22,7 +22,13 @@ class DistancePlotCallback(BaseCallback):
     logger's CSVOutputFormat for logging.
     """
 
-    def __init__(self, log_dir, text_verbosity):
+    def __init__(self, log_dir: str, text_verbosity: bool) -> None:
+        """Initializes the class by setting the class variables.
+
+        Args:
+            log_dir (str): Directory to save logs in.
+            text_verbosity (bool): State of verbose mode.
+        """
         super(DistancePlotCallback, self).__init__()
         """Initializes class with attributes.
         """
@@ -42,6 +48,7 @@ class DistancePlotCallback(BaseCallback):
         self.text_verbosity = text_verbosity
 
     def _on_training_start(self) -> None:
+        """Callback at start of training. Creates the csv file and write headers to it."""
         # Create the log directory if it doesn't exist
         os.makedirs(self.log_dir, exist_ok=True)
 
@@ -68,7 +75,7 @@ class DistancePlotCallback(BaseCallback):
 
         self.delta_t_from_last_episode = time.time()
 
-    def _write_to_csv(self, data: dict, file_path: str):
+    def _write_to_csv(self, data: dict, file_path: str) -> None:
         """Write a row of data to the specified CSV file and close the file handle immediately.
 
         Args:
@@ -87,8 +94,7 @@ class DistancePlotCallback(BaseCallback):
                 file.write(",".join(map(str, data.values())) + "\n")
 
     def _on_rollout_end(self) -> None:
-        """
-        Increment the iteration counter at the end of each rollout (step within an episode).
+        """Increment the iteration counter at the end of each rollout (step within an episode).
         This tracks individual rollouts.
         """
         self.iteration_counter += 1
@@ -246,6 +252,7 @@ class DistancePlotCallback(BaseCallback):
         return True
 
     def _on_training_end(self) -> None:
+        """Callback for end of training. Generates and saves plot of the distance ration over training timesteps."""
         # Plot ratios over episodes
         plt.close("all")
         plt.figure(figsize=(10, 6))
@@ -283,36 +290,70 @@ class DistancePlotCallback(BaseCallback):
 
         # plt.show()
 
-def int_or_none(value):
+
+def int_or_none(value: str) -> int | None:
+    """Generates None or int value from command line argument.
+
+    Args:
+        value (str): Argument from command line.
+
+    Raises:
+        argparse.ArgumentTypeError: Error if input string can not be converted to None or int.
+
+    Returns:
+        int | None: None or int value.
+    """
     if value.lower() == "none":
         return None
     try:
         return int(value)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"Invalid value: '{value}', must be an integer or 'None'.")
-    
-def str2bool(value):
+        raise argparse.ArgumentTypeError(
+            f"Invalid value: '{value}', must be an integer or 'None'."
+        )
+
+
+def str2bool(value: str) -> bool:
+    """Generates bool from command line argument.
+
+    Args:
+        value (str): Argument from command line.
+
+    Raises:
+        argparse.ArgumentTypeError: Error if input can not be converted to a bool.
+
+    Returns:
+        bool: Boolean value.
+    """
     if isinstance(value, bool):
         return value
-    if value.lower() in {'true', 'yes', '1'}:
+    if value.lower() in {"true", "yes", "1"}:
         return True
-    elif value.lower() in {'false', 'no', '0'}:
+    elif value.lower() in {"false", "no", "0"}:
         return False
     else:
         raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 
-def parse_arguments():
+
+def parse_arguments() -> argparse.Namespace:
+    """Parses the command line arguments.
+    Raises:
+        ValueError: Error to check tht total timesteps are greater than or equal to rollout_steps.
+
+    Returns:
+        argparse.Namespace: Object containing all of the command line arguments as attributes.
+    """
     # Define options as lists
     exc_options = ["train", "test"]
     model_quant_options = ["fp16", "8b", "4b"]
-    reward_options = ["llm", "sparse", "euclidean", "delta_r"]
+    reward_options = ["llm", "sparse", "euclidean", "delta_r", "map"]
     train_render_mode_options = ["rgb_array", "human"]
 
     # Set up argument parser
     parser = argparse.ArgumentParser(
         description="Train or test a PPO model in a magnetic manipulation environment."
     )
-    # Add optional arguments
+
     parser.add_argument(
         "--batch-size",
         type=int,
@@ -373,7 +414,7 @@ def parse_arguments():
         type=str,
         choices=reward_options,
         default="delta_r",
-        help="Reward type: 'llm', 'sparse', 'euclidean', or 'delta_r'. Default: 'delta_r'.",
+        help="Reward type: 'llm', 'sparse', 'euclidean', 'delta_r' or 'map'. Default: 'delta_r'.",
     )
     parser.add_argument(
         "--rollout-steps",
@@ -455,10 +496,15 @@ def parse_arguments():
         help="Verbosity of training parameters. Default: True.",
     )
     parser.add_argument(
-        "--env_type",
+        "--env-type",
         type=str,
         default="simulator",
         help="Environment to run the system on. Available options are 'simulator' and 'gui'. Default: 'simulator'.",
+    )
+    parser.add_argument(
+        "--map-file",
+        type=str,
+        help="File name of the reward map. Only affects if --reward-type is 'map'.",
     )
     args = parser.parse_args()
 
@@ -500,9 +546,10 @@ if __name__ == "__main__":
     train_render_mode = args.train_render_mode
     train_verbosity = args.train_verbosity
     env_type = args.env_type
+    map_file = args.map_file
     ########################################################################################################################
 
-    # Prepare environment keyword arguments
+    # Prepare environment keyword arguments corresponding to exc and reward_type
     kwarg_options = {
         "llm": {
             "render_mode": train_render_mode,
@@ -548,6 +595,18 @@ if __name__ == "__main__":
             "particle_reset": particle_reset,
             "goal_reset": goal_reset,
         },
+        "map": {
+            "render_mode": train_render_mode,
+            "render_fps": train_render_fps,
+            "train_fps": train_fps,
+            "episode_time_limit": train_episode_time_limit,
+            "n_obs": num_obs,
+            "reward_type": "map",
+            "particle_reset": particle_reset,
+            "goal_reset": goal_reset,
+            "map_file": map_file,
+            "verbose": train_verbosity,
+        },
         "human_test_delta_r": {
             "render_mode": "human",
             "render_fps": test_render_fps,
@@ -560,13 +619,14 @@ if __name__ == "__main__":
         },
     }
 
+    # Trains the model
     if exc == "train":
         kwargs = kwarg_options[reward_type]
 
         # Define the directory for saving model, plot, and logs
         if reward_type == "llm":
             save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{model_id.lower()}_{prompt_file[11:-5]}_{total_timesteps}-steps_{num_obs}-obs_ep-time-{train_episode_time_limit}"
-        elif reward_type in ["euclidean", "delta_r", "sparse"]:
+        elif reward_type in ["euclidean", "delta_r", "sparse", "map"]:
             save_dir = f"src/FM3_MicRo/control_models/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{reward_type}_{total_timesteps}-steps_{num_obs}-obs_ep-time-{train_episode_time_limit}"
 
         os.makedirs(save_dir, exist_ok=True)  # Create directory if it doesn't exist
@@ -580,7 +640,7 @@ if __name__ == "__main__":
         if text_verbosity:
             print(f"Metadata saved to {metadata_file}")
 
-        # Single environment
+        # Train environment
         vec_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
         monitored_env = Monitor(vec_env, filename=None)
         vec_env = DummyVecEnv([lambda: monitored_env])
@@ -638,9 +698,11 @@ if __name__ == "__main__":
         if text_verbosity:
             print(f"Model saved as {test_model_path}")
 
+    # Tests the model
     if test_after_train or exc == "test":
         kwargs = kwarg_options["human_test_delta_r"]
 
+        # Test environment
         vec_env = gym.make("gymnasium_env/SingleParticleNoCargo-v0", **kwargs)
         monitored_env = Monitor(vec_env, filename=None)
         vec_env = DummyVecEnv([lambda: monitored_env])
@@ -650,6 +712,7 @@ if __name__ == "__main__":
 
         obs = vec_env.reset()
 
+        # Continuously runs episodes
         while True:
             action, _states = model.predict(obs, deterministic=True)
             obs, rewards, dones, info = vec_env.step(action)

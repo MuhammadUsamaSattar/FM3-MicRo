@@ -1,0 +1,11 @@
+Restoring modules from user's FM3-MicRo
+/scratch/work/sattaru1/.conda_envs/FM3-MicRo/lib/python3.10/site-packages/sklearn/base.py:376: InconsistentVersionWarning: Trying to unpickle estimator MLPRegressor from version 1.5.1 when using version 1.5.2. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+Loading checkpoint shards:   0%|          | 0/17 [00:00<?, ?it/s]Loading checkpoint shards:   6%|▌         | 1/17 [00:02<00:41,  2.61s/it]Loading checkpoint shards:  12%|█▏        | 2/17 [00:04<00:37,  2.48s/it]Loading checkpoint shards:  18%|█▊        | 3/17 [00:07<00:34,  2.44s/it]Loading checkpoint shards:  24%|██▎       | 4/17 [00:09<00:31,  2.41s/it]Loading checkpoint shards:  29%|██▉       | 5/17 [00:12<00:28,  2.40s/it]Loading checkpoint shards:  35%|███▌      | 6/17 [00:14<00:26,  2.40s/it]Loading checkpoint shards:  41%|████      | 7/17 [00:16<00:23,  2.39s/it]Loading checkpoint shards:  47%|████▋     | 8/17 [00:19<00:21,  2.39s/it]Loading checkpoint shards:  53%|█████▎    | 9/17 [00:21<00:19,  2.39s/it]Loading checkpoint shards:  59%|█████▉    | 10/17 [00:24<00:16,  2.39s/it]Loading checkpoint shards:  65%|██████▍   | 11/17 [00:26<00:14,  2.39s/it]Loading checkpoint shards:  71%|███████   | 12/17 [00:28<00:11,  2.39s/it]Loading checkpoint shards:  76%|███████▋  | 13/17 [00:31<00:09,  2.39s/it]Loading checkpoint shards:  82%|████████▏ | 14/17 [00:33<00:07,  2.42s/it]Loading checkpoint shards:  88%|████████▊ | 15/17 [00:36<00:04,  2.41s/it]Loading checkpoint shards:  94%|█████████▍| 16/17 [00:38<00:02,  2.40s/it]Loading checkpoint shards: 100%|██████████| 17/17 [00:40<00:00,  2.25s/it]Loading checkpoint shards: 100%|██████████| 17/17 [00:40<00:00,  2.38s/it]
+Traceback (most recent call last):
+  File "/scratch/work/sattaru1/FM3-MicRo/src/FM3_MicRo/rl.py", line 617, in <module>
+    # Train the model
+TypeError: NPZPlotter.__init__() got an unexpected keyword argument 'npz_file'
+srun: error: gpu45: task 0: Exited with exit code 1
+srun: Terminating StepId=5534534.0

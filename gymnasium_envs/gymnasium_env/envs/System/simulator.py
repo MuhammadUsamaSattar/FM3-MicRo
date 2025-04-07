@@ -1014,19 +1014,28 @@ class Simulator:
             else:
                 self.goal_locs = [pos]
 
-    def getState(self, render, n_obs=1):
+    def getState(self, render: bool, n_obs: int = 1) -> tuple[list, list, list, list]:
+        """Returns the state of the environment
+
+        Args:
+            render (bool): State of render mode.
+            n_obs (int, optional): Number of observations to take. Defaults to 1.
+
+        Returns:
+            tuple[list, list, list, list]: Tuple containing particle locations, goal location, coil values and coil location
+            each in a separate list.
+        """
         particle_locs = [self.particle_loc.copy()]
 
+        # Keep updatin the frame until n_obs are gathered
         while len(particle_locs) < n_obs:
-            self.particle_loc, self.particle_vel = (
-                self.updateParticleLocation(
-                    self.particle_loc,
-                    self.particle_vel,
-                    self.flag_edit_particle_mouse,
-                    self.coil_vals,
-                    self.coil_locs,
-                    render,
-                )
+            self.particle_loc, self.particle_vel = self.updateParticleLocation(
+                self.particle_loc,
+                self.particle_vel,
+                self.flag_edit_particle_mouse,
+                self.coil_vals,
+                self.coil_locs,
+                render,
             )
 
             particle_locs.append(self.particle_loc.copy())
@@ -1080,7 +1089,7 @@ class Simulator:
                 dtype=int,
             )
 
-            self.particle_loc[1] = math.sqrt((r**2) - (self.particle_loc[0]**2))
+            self.particle_loc[1] = math.sqrt((r**2) - (self.particle_loc[0] ** 2))
             self.particle_loc[1] *= np.random.choice([-1, 1])
 
         self.particle_vel = [0, 0]  # Attribute to hold the particle velocity
@@ -1108,11 +1117,6 @@ class Simulator:
             0.0 for _ in initializations.COIL_NAMES
         ]  # Creates a 1x8 list of floats that will hold the current value for each coil
 
-        self.data_extractor = data_extractor.data_extractor(
-            self.coil_locs,
-            initializations.COIL_NAMES,
-        )  # Stores the data extractor object in an attribute
-
         self.date_time = str(
             datetime.datetime.now()
         )  # Initial format is --> YYYY-MM-DD HH:MM:SS.SSSSSS
@@ -1131,6 +1135,7 @@ class Simulator:
         self.prev_time = time.time()
 
     def close(self):
+        """Closes the window and system."""
         pygame.display.quit()
         pygame.quit()
 

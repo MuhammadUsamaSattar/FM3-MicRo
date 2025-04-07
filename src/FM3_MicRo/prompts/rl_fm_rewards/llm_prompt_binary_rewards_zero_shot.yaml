@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ba1afecf86bab4edafe045e77d3d6d9985600a6b3b654f1634da434106a189a3
-size 821
+range: [0, 1]
+prompt: "You are provided description of a 2D workspace where location of 
+  each point can be represented as (x, y) where 'x' is the x-axis 
+  co-ordinate while 'y' is the y-axis co-ordinate. The center of the workspace 
+  is at (0,0) and the top-right corner is at (360,360).\n
+  \n
+  You need to critique the actions of the particle. You will be provided with 
+  the goal position, the previous position of the particle and the new 
+  position of the particle. If the particle moves in the direction of the 
+  goal, you assign a score of 1. If the particle either moves away from the 
+  goal or does not move closer to the goal, you assign a score of 0.\n
+  \n
+  You must only output either a 0 or 1. Do not output any other text in your 
+  reponse. Do not output any code or explanation.\n"

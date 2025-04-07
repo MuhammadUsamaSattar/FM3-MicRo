@@ -1,3 +1,6 @@
+- **2e05ac9:** Removed LFS
+- **a96a0e0:** Removed helper script
+- **afeedf5:** Completed repo.
 - **bc431d8:** Attempted to convert .json reward maps to git lfs. Added camera_pygame.py to test out the trained RL model on the experimental setup. npz_plotter.py can now take multiple files and plot them on the same plot.
 - **70883b2:** Modified gui.py to interface with gym environment
 - **2d399db:** Added reward maps .yaml file to git lfs storage

@@ -931,7 +931,7 @@ class Simulator:
             coil_vals : List of size 8 containing scaled current values where 0th value corresponds to the Northern coil
             render : Determines if canvas should be rendered
         """
-        self.coil_vals = functions.limit_coil_vals(coil_vals.copy())
+        self.coil_vals = list(functions.limit_coil_vals(coil_vals.copy()))
         self.render = render
 
         # Calculates d, distance from first goal, and removes the goal from the list if d is less than initializations.SIM_MULTIPLE_GOALS_ACCURACY
@@ -952,7 +952,7 @@ class Simulator:
         # Records a data point in the data logger
         if self.flag_log:
             self.data_extractor.record_datapoint(
-                self.particle_loc, coil_vals, self.goal_locs, 1
+                self.particle_loc, self.coil_vals, self.goal_locs
             )
 
         self.particle_loc, self.particle_vel = self.updateParticleLocation(
@@ -1109,7 +1109,6 @@ class Simulator:
         self.flag_setting_multiple_goals = (
             False  # Flag to detect if multiple goals mode has been turned on
         )
-        self.flag_log = False  # Flag to detect if logging mode has been turned on
 
         self.flag_record = False  # Flag to detect if canvas is being recorded
 

@@ -1,3 +1,6 @@
+- **79afb3a:** Modified README.md
+- **fdcd969:** Copy of project to GitHub
+- **6a8d461:** Updated CHANGELOG.md
 - **2e05ac9:** Removed LFS
 - **a96a0e0:** Removed helper script
 - **afeedf5:** Completed repo.

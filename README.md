@@ -69,7 +69,7 @@ The particle is accelerated toward the solenoids by magnetic force. Fluid drag f
 Thus, the system dynamics are governed by only magnetic and drag forces, as shown below:
 
 <div align="center">
-    <img src="./media/Misc//System%20Mechanics.png" alt="Diagram of system mechanics" width="600">
+    <img src="./media/Misc//Schematic.jpg" alt="Diagram of system mechanics" width="600">
 </div>
 
 ## Simulator

@@ -1,3 +1,4 @@
+- **34d2205:** Updated videos in media/Test and added log files
 - **79afb3a:** Modified README.md
 - **fdcd969:** Copy of project to GitHub
 - **6a8d461:** Updated CHANGELOG.md

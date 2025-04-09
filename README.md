@@ -42,7 +42,7 @@ python src\FM3_MicRo\rl.py --help
 ```
 
 # Introduction
-This repository contains Python code, `.bat` scripts, `.sh` SLURM scripts, and media files for the thesis **"Application of Foundation Model Based Methods in Micro-Robotics"** at the Robotic Instruments Lab, Aalto University by Muhammad Usama Sattar during year 2025.
+This repository contains Python code, `.bat` scripts, `.sh` SLURM scripts, media files and log files for the thesis **"Application of Foundation Model Based Methods in Micro-Robotics"** at the Robotic Instruments Lab, Aalto University by Muhammad Usama Sattar during year 2025.
 
 We employ a novel RL technique where LLM acts as reward generator to control micro-robots via magnetic fields. The LLM receives the previous state, current state, and goal. This information is used to generate the reward value for each timestep. The idea is that LLMs can identify relevant workspace features that indicate good actions, eliminating the need for manual reward design.
 
@@ -69,7 +69,7 @@ The particle is accelerated toward the solenoids by magnetic force. Fluid drag f
 Thus, the system dynamics are governed by only magnetic and drag forces, as shown below:
 
 <div align="center">
-    <img src="./media/Misc//System%20Mechanics.png" alt="Diagram of system mechanics" width="600">
+    <img src="./media/Misc//Schematic.jpg" alt="Diagram of system mechanics" width="600">
 </div>
 
 ## Simulator
@@ -109,7 +109,7 @@ Each prompt has been further differnetiated by possible output values:
 - **Continuous:** LLM can output any integer from -9 to +9.
 
 # Results
-We only provide key results in the markdown. You can find the complete dataset of plots in `.\media\`.
+We only provide key results in the markdown. You can find the complete dataset of plots in [./media/](./media/).
 ## Reward Maps
 Reward Maps illustrate the reward values for moving from a paritcular location to another. The shape of the maps reveal the variation in performance with various prompts and model sizes. Key features are:
 
@@ -156,3 +156,4 @@ We observe the same behaviours in evaluations as described in Reward Maps. Notab
 The trend in the plot is counter-intuitive. Generally, larger models take more time for inference. Only possible explanation that we could find for the observed trend is a better capability of larger models to utilize GPU and software optimizations.
 
 ## Videos
+You can find videos of the trained model running on the simulator and experimental setup along with log files in [./media/Test/](./media/Test/).

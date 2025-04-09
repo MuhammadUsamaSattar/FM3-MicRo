@@ -37,12 +37,12 @@ class CameraPygame:
         self.flag_automatic_control = True
         self.flag_show_solenoid_state = True
         self.flag_snapshot = False
-        self.flag_gen_log_data = False
-        self.flag_setting_multiple_goals = False
         self.flag_log = False
+        self.flag_setting_multiple_goals = False
 
-        self.particle_locs = [
-            [initializations.GUI_FRAME_WIDTH / 2, initializations.GUI_FRAME_HEIGHT / 2]
+        self.particle_loc = [
+            initializations.GUI_FRAME_WIDTH / 2,
+            initializations.GUI_FRAME_HEIGHT / 2,
         ]
         self.particle_rads = [0]
         self.blob_lost = False
@@ -142,37 +142,33 @@ class CameraPygame:
         detection_frame = cv2.medianBlur(detection_frame, 5)
         detection_frame = cv2.bitwise_not(detection_frame)
 
-        particle_locs_img = []
-        for particle_loc in self.particle_locs:
-            particle_locs_img.append(
-                functions.absolute_to_image(
-                    particle_loc[0],
-                    particle_loc[1],
-                    initializations.GUI_FRAME_WIDTH,
-                    initializations.GUI_FRAME_HEIGHT,
-                )
-            )
-
-        self.blob_lost, particle_locs_img, self.particle_rads = (
-            Blob_detect.iden_blob_detect(
-                detection_frame, particle_locs_img, self.particle_rads
+        particle_loc_img = []
+        particle_loc_img.append(
+            functions.absolute_to_image(
+                self.particle_loc[0],
+                self.particle_loc[1],
+                initializations.GUI_FRAME_WIDTH,
+                initializations.GUI_FRAME_HEIGHT,
             )
         )
 
-        self.particle_locs = []
-        for particle_loc_img in particle_locs_img:
-            self.particle_locs.append(
-                functions.image_to_absolute(
-                    particle_loc_img[0],
-                    particle_loc_img[1],
-                    initializations.GUI_FRAME_WIDTH,
-                    initializations.GUI_FRAME_HEIGHT,
-                )
+        self.blob_lost, particle_loc_img, self.particle_rads = (
+            Blob_detect.iden_blob_detect(
+                detection_frame, particle_loc_img, self.particle_rads
             )
+        )
+
+        for particle_loc_img in particle_loc_img:
+            self.particle_loc = functions.image_to_absolute(
+                particle_loc_img[0],
+                particle_loc_img[1],
+                initializations.GUI_FRAME_WIDTH,
+                initializations.GUI_FRAME_HEIGHT,
+            )[:]
 
         return detection_frame
 
-    def drawBlobs(self, frame, particle_locs: list):
+    def drawBlobs(self, frame, particle_loc: list):
         """Draw detected location of particle.
 
         Args:
@@ -180,20 +176,19 @@ class CameraPygame:
             particle_locs (list): Location of particle.
         """
         if self.flag_detecting_objects:
-            for i in range(len(particle_locs)):
-                particle_loc_img = functions.absolute_to_image(
-                    particle_locs[i][0],
-                    particle_locs[i][1],
-                    initializations.GUI_FRAME_WIDTH,
-                    initializations.GUI_FRAME_HEIGHT,
-                )
-                cv2.circle(
-                    frame,
-                    particle_loc_img,
-                    self.particle_rads[i],
-                    initializations.GUI_BLOB_COLOR,
-                    initializations.GUI_BLOB_THK,
-                )
+            particle_loc_img = functions.absolute_to_image(
+                particle_loc[0],
+                particle_loc[1],
+                initializations.GUI_FRAME_WIDTH,
+                initializations.GUI_FRAME_HEIGHT,
+            )
+            cv2.circle(
+                frame,
+                particle_loc_img,
+                self.particle_rads[0],
+                initializations.GUI_BLOB_COLOR,
+                initializations.GUI_BLOB_THK,
+            )
 
     def drawSolenoids(self, frame, coil_locs, coil_vals):
         """Draws location of solenoids.
@@ -290,7 +285,7 @@ class CameraPygame:
     def drawElements(
         self,
         frame,
-        particle_locs: list,
+        particle_loc: list,
         goal_locs: list,
         coil_locs: list,
         coil_vals: list,
@@ -306,9 +301,9 @@ class CameraPygame:
             coil_vals (list): Current applied at each solenoid.
             frame_size (int): Size of frame.
         """
-        self.drawGoalVector(frame, particle_locs[0], goal_locs)
+        self.drawGoalVector(frame, particle_loc, goal_locs)
         self.drawGoal(frame, goal_locs)
-        self.drawBlobs(frame, particle_locs)
+        self.drawBlobs(frame, particle_loc)
         self.drawSolenoids(frame, coil_locs, coil_vals)
 
     def process_frame(self):
@@ -343,7 +338,7 @@ class CameraPygame:
 
         self.drawElements(
             frame,
-            self.particle_locs,
+            self.particle_loc,
             self.goal_locs,
             self.coil_locs,
             self.coil_vals,
@@ -558,9 +553,6 @@ class CameraPygame:
         self.flag_setting_multiple_goals = (
             False  # Flag to detect if multiple goals mode has been turned on
         )
-        self.flag_gen_log_data = (
-            False  # Flag to detect if logging mode has been turned on
-        )
 
     def getState(self, render: bool, n_obs: int = 1) -> tuple[list, list, list, list]:
         """Gets state of the environment.
@@ -573,7 +565,7 @@ class CameraPygame:
             tuple[list, list, list, list]: Tuple containing particle locations, goal location, coil values and coil location
             each in a separate list.
         """
-        particle_locs = self.particle_locs.copy()
+        particle_locs = self.particle_loc.copy()
 
         while len(particle_locs) < n_obs:
             running = self.step()
@@ -581,7 +573,7 @@ class CameraPygame:
             if not running:
                 self.close()
 
-            particle_locs.append(self.particle_locs[0].copy())
+            particle_locs.append(self.particle_loc.copy())
 
         return (
             particle_locs.copy(),
@@ -607,7 +599,7 @@ class CameraPygame:
             if coil_vals is None:
                 if self.flag_automatic_control:
                     self.coil_vals = control_algorithm.get_coil_vals(
-                        self.particle_locs[0],
+                        self.particle_loc,
                         self.goal_locs[0],
                         self.coil_vals,
                         self.coil_locs,
@@ -621,14 +613,14 @@ class CameraPygame:
 
             self.process_frame()
 
-            if self.flag_gen_log_data:
+            if self.flag_log:
                 self.data_extractor.record_datapoint(
-                    self.particle_locs, self.coil_vals, self.goal_locs
+                    self.particle_loc, self.coil_vals, self.goal_locs
                 )
 
             d = functions.distance(
-                self.particle_locs[0][0],
-                self.particle_locs[0][1],
+                self.particle_loc[0],
+                self.particle_loc[1],
                 self.goal_locs[0][0],
                 self.goal_locs[0][1],
             )
@@ -698,11 +690,7 @@ class CameraPygame:
 
                     # If canvas was being recorded, stop recording canvas and save it
                     if self.flag_record:
-                        print(
-                            "Video saved to: Data/Camera_Test"
-                            + self.date_time
-                            + "/Recording.avi"
-                        )
+                        print("Video saved to: Data/Camera_Test/Recording.avi")
                         self.recorder.end_recording()  # Finishes and saves the recording
 
                     # If canvas was not being recorded, start recording canvas
@@ -716,8 +704,7 @@ class CameraPygame:
                             initializations.SIM_FRAME_WIDTH,
                             initializations.SIM_FRAME_HEIGHT,
                             60,
-                            "Data/Data/Camera_Test"
-                            + "/Recording.avi",
+                            "Data/Data/Camera_Test/Recording.avi",
                         )  # Passes the desired fps and starts the recorder
 
                     self.flag_record = not self.flag_record

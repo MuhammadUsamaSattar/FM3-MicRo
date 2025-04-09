@@ -1,6 +1,3 @@
-# Note
-This repository is a copy of the final version of the project hosted on Aalto's GitLab for public access due to which merge histories are missing.
-
 # Installation
 
 The code can be used for training new models or testing them. Testing requires fewer dependencies and does not need a CUDA-supported GPU.

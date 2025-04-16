@@ -1,5 +1,4 @@
-# Note
-This repository is a copy of the final version of the project hosted on Aalto's GitLab for public access due to which merge histories are missing.
+![Model Testing on Experimental Setup](./media/Paper%20Figures%20and%20Videos/Supplementary%20movie%20(processed).gif)
 
 # Installation
 
@@ -41,14 +40,16 @@ For available options, use:
 python src\FM3_MicRo\rl.py --help
 ```
 
-# Introduction
-This repository contains Python code, `.bat` scripts, `.sh` SLURM scripts, media files and log files for the thesis **"Application of Foundation Model Based Methods in Micro-Robotics"** at the Robotic Instruments Lab, Aalto University by Muhammad Usama Sattar during year 2025.
+# Project Details
+
+## Introduction
+This repository contains Python code, `.bat` scripts, `.sh` SLURM scripts, media files and log files for the thesis **"Application of Foundation Model Based Methods in Micro-Robotics"** at the Robotic Instruments Lab, Aalto University by Muhammad Usama Sattar during year 2025 and subsequently the conference paper "Application of Large Language Models in Magnetically Manipulated Microrobots" submitted to MARSS2025.
 
 We employ a novel RL technique where LLM acts as reward generator to control micro-robots via magnetic fields. The LLM receives the previous state, current state, and goal. This information is used to generate the reward value for each timestep. The idea is that LLMs can identify relevant workspace features that indicate good actions, eliminating the need for manual reward design.
 
 For more details, refer to: [Reward Design with Language Models](https://arxiv.org/pdf/2303.00001).
 
-# Magnetic Manipulation Setup and Simulator
+## Magnetic Manipulation Setup and Simulator
 The setup consists of 8 solenoids arranged in a circular configuration. A ferromagnetic particle is placed within the solenoid circle. Applying current to a solenoid attracts the particle toward it which enables precise particle placement.
 
 <div align="center">
@@ -57,7 +58,7 @@ The setup consists of 8 solenoids arranged in a circular configuration. A ferrom
     <img src="media/Misc/Experimental%20Setup.jpg" alt="Picture of the system" width="600">
 </div>
 
-## System Mechanics
+### System Mechanics
 
 The particle is accelerated toward the solenoids by magnetic force. Fluid drag from the water surface reduces its momentum while the meniscus effect pulls the particle toward the petri dish center, though this is negligible due to the dish's size.
 
@@ -67,7 +68,7 @@ Thus, the system dynamics are governed by only magnetic and drag forces, as show
     <img src="media/Misc/Schematic.jpg" alt="Diagram of system mechanics" width="600">
 </div>
 
-## Simulator
+### Simulator
 
 The simulator is built using `pygame` and mimics the experimental setup through a deep-learning-trained model. It enables simultaneous RL training on an HPC cluster.
 
@@ -75,7 +76,7 @@ The simulator is built using `pygame` and mimics the experimental setup through 
     <img src="media/Misc/Simulator.png" alt="Screenshot of the simulator main window">
 </div>
 
-# Implementation
+## Implementation
 For RL, we use **PPO** from `Stable-Baselines3`. Local LLM inference is achieved through `Transformers` libary. We utilize the following **QWEN2.5-Instruct** models:
 
 - **3B**
@@ -103,9 +104,9 @@ Each prompt has been further differnetiated by possible output values:
 - **Binary:** LLM can output either a 0 or 1.
 - **Continuous:** LLM can output any integer from -9 to +9.
 
-# Results
+## Results
 We only provide key results in the markdown. You can find the complete dataset of plots in [./media/](./media/).
-## Reward Maps
+### Reward Maps
 Reward Maps illustrate the reward values for moving from a paritcular location to another. The shape of the maps reveal the variation in performance with various prompts and model sizes. Key features are:
 
 - **Black Cross:** Goal Position
@@ -124,7 +125,7 @@ We observe the following trends in the figures:
 - One-shot with Explanation > Five-shot > Zero-shot
 - Binary Rewards > Continuous Rewards
 
-## Model Evaluations
+### Model Evaluations
 Each model was tested 100 times during its training utilizing **delta_r** rewards to mantain consistency.
 
 <div align="center">
@@ -134,12 +135,14 @@ Each model was tested 100 times during its training utilizing **delta_r** reward
 
 We observe the same behaviours in evaluations as described in Reward Maps. Notably **Binary One-shot with Explanation** performs even better than our baseline **delta_r**. This underscore the benefits of utilizing LLMs as reward generators due to their ability to extract additional features from the workspace resulting in improved convergence. Furthermore, utilizing **QWEN-32B-Instruct** allows even **Zero-shot** to converge, suggesting that at sufficient model sizes, accurate reward values can be generated without examples and/or explanations.
 
-## Training Times
+### Training Times
 <div align="center">
     <img src="media/Training%20Times/All%20Sizes.jpg" alt="Training Times for Model Sizes" width="600">
 </div>
 
 The trend in the plot is counter-intuitive. Generally, larger models take more time for inference. Only possible explanation that we could find for the observed trend is a better capability of larger models to utilize GPU and software optimizations.
 
-## Videos
-You can find videos of the trained model running on the simulator and experimental setup along with log files in [./media/Test/](./media/Test/).
+### Media Files
+You can find videos of the trained model running on the simulator and experimental setup along with log files and various figures in [./media/](./media/).
+
+Figures and videos relating to the paper "Application of Large Language Models in Magnetically Manipulated Microrobots" submitted at MARSS2025 can be found in [./media/Paper Figures and Videos/](./media/Paper%20Figures%20and%20Videos/).

@@ -1,3 +1,9 @@
+- **625a117:** Added media files for conference paper
+- **53e4ba3:** Edit README.md
+- **5934ab3:** Updated README.md
+- **8610e6b:** Merge branch 'rl_fm_rewards' into 'main'
+- **d50033c:** Resolved conflict
+- **31f53c7:** Modified README and changed media file placement
 - **34d2205:** Updated videos in media/Test and added log files
 - **79afb3a:** Modified README.md
 - **fdcd969:** Copy of project to GitHub
@@ -5,6 +11,7 @@
 - **2e05ac9:** Removed LFS
 - **a96a0e0:** Removed helper script
 - **afeedf5:** Completed repo.
+- **8d99dd6:** Delete README.md
 - **bc431d8:** Attempted to convert .json reward maps to git lfs. Added camera_pygame.py to test out the trained RL model on the experimental setup. npz_plotter.py can now take multiple files and plot them on the same plot.
 - **70883b2:** Modified gui.py to interface with gym environment
 - **2d399db:** Added reward maps .yaml file to git lfs storage
@@ -25,12 +32,14 @@
 - **6a6ddfe:** Added time logging to SingleParticleNoCargo class via 'verbose' parameter
 - **d22f07f:** RL with FM rewards works in sequential computing
 - **887a2cc:** Started modifying gym environment to work with foundation models
+- **428e054:** Merge branch 'zero_shot_raw' into 'main'
 - **ed1f5e3:** Prompt file is now a parameter to the ZeroShotRaw class
 - **108941f:** Change VLM and LLM classes to take model_id in __init__()
 - **5cf05d1:** Add additional prompts for llm based raw one shot
 - **78969f3:** Change prompt output to JSON format. Change file names from 'x_shot_raw' to 'raw_x_shot'
 - **9a34e58:** Implement zero_shot_raw with gym env
 - **51ad47f:** Fix LLAMA chat format. Both LLAMA and LLAVA now only generate output text without input prompt
+- **6b42536:** Merge branch 'feature_setup' into 'main'
 - **5fe228f:** Added comments to files and organized imports
 - **e11e757:** Changed vlm class to allow both url and image as array/PIL option
 - **77af1eb:** Setup vlm and llm classes along with optimizations to maximize token generation rate.
